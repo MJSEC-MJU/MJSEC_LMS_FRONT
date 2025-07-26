@@ -1,0 +1,78 @@
+//nav바 스크립트
+
+$(document).ready(function() {
+    $('.expandHome').on('mouseover', function() {
+        $('.sub-home').css('display', 'block');
+    });
+
+    $('.subnavbtn').on('mouseover', function() {
+        $('.sub-home').css('display', 'none');
+    });
+
+    $('#trapezoid').on('mouseleave', function() {
+        $('#trapezoid').css('margin-top', '-53px');
+        $('.sub-home').css('display', 'none');
+    }).on('mouseenter', function() {
+        $('#trapezoid').css('margin-top', '0px');
+    });
+});
+
+//nav바 스크롤 자동이동
+function scrollDown(event, multiple) {
+  event.preventDefault(); // a 태그 기본 이동 막기
+  window.scrollTo({ top: window.innerHeight * multiple, behavior: 'smooth' });
+}
+
+//활동 페이지 스크롤 js코드
+
+//화면 넘기기 버튼
+let next = document.querySelector('.next')
+let prev = document.querySelector('.prev')
+next.addEventListener('click', function(){
+    let items = document.querySelectorAll('.item');
+    let firstItem = items[0];
+    document.querySelector('.slide').appendChild(firstItem);
+})
+
+prev.addEventListener('click', function(){
+    let items = document.querySelectorAll('.item');
+    let lastItem = items[items.length - 1];
+    document.querySelector('.slide').prepend(lastItem);
+})
+
+
+
+//모바일로 접속시 알림창
+if (window.innerWidth <= 768) {
+    alert("이 웹사이트는 데스크탑 환경에 최적화되어 있습니다.\nPC에서 접속해 주세요.");
+}
+
+
+
+//study now 버튼 클릭시 알림창
+const contentButtons = document.querySelectorAll(".content button");
+
+contentButtons.forEach(button => {
+    button.addEventListener("click", function (e) {
+        e.preventDefault();
+        alert("지금은 신청 기간이 아닙니다!");
+    });
+});
+let slide = document.querySelector('.slide');
+let items = document.querySelectorAll('.item');
+
+
+
+
+//화면 넘기기. 카드 클릭시.
+document.querySelectorAll('.item').forEach(item => {
+    item.addEventListener('click', () => {
+        let slide = document.querySelector('.slide');
+        let items = [...document.querySelectorAll('.item')];
+        let index = items.indexOf(item);
+
+        for (let i = 0; i < index - 1; i++) {
+            slide.appendChild(slide.firstElementChild);
+        }
+    });
+});
