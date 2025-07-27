@@ -408,6 +408,8 @@ spline-viewer {
   font-style: normal;
   font-size: 1.5rem;
   width: 500px;
+  opacity: 0;
+  animation: animate 1s ease-in-out 0.3s 1 forwards;
 }
 
 .content button {
