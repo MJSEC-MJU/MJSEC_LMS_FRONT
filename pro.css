@@ -276,8 +276,8 @@ img {
 <<<<<<< HEAD
 
 /* *************************************          소개 페이지 css          ******************************** */
+
 /* #region 소개 페이지 */
-=======
 .icon-bg.github:hover {
   background-color: #f0d1d1;
 }
@@ -310,12 +310,11 @@ img {
   color: white;
 }
 /***여긴 소개페이지***/
->>>>>>> f5efee015ae623e1946de05e8920da0ccd9b584a
+
 .second-page {
   height: 100vh;
   position: relative;
   display: flex;
-<<<<<<< HEAD
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -325,16 +324,10 @@ img {
   background-repeat: no-repeat;
   background-size: cover;
   z-index: 888;
-=======
-  background-image: url(./page2_1.png);
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
 }
 .second-page::before{               /* 어두운 오버레이(가독성 ↑) */
   content:"";position:absolute;inset:0;
   background:rgba(0,0,0,.45);
->>>>>>> f5efee015ae623e1946de05e8920da0ccd9b584a
 }
 
 /* 2) 맥 터미널 박스 ---------------------------------------------------- */
