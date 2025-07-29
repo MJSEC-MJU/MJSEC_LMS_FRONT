@@ -76,3 +76,16 @@ document.querySelectorAll('.item').forEach(item => {
         }
     });
 });
+
+//소셜미디어 마우스 커서 위치
+const cards = Array.from(document.querySelectorAll(".social-card"));
+const cardsContainer = document.querySelector("#cards");
+cardsContainer.addEventListener("mousemove", (e) => {
+    for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+        card.style.setProperty("--mouse-x", `${x}px`);
+        card.style.setProperty("--mouse-y", `${y}px`);
+    }
+});
