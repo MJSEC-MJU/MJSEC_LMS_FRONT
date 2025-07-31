@@ -91,35 +91,49 @@ cardsContainer.addEventListener("mousemove", (e) => {
 });
 //소개페이지 js
 const lines = [
-    "$ ls",
-    "intro.txt vision.txt",
-    "",
-    "$ cat intro.txt",
-    "안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
-    "저희 동아리는 -----------------------------",
-    "-----------------------------------------",
-    "",
-    "$ cat vision.txt",
-    "저희의 목표는 ------------------------------"
+  "$ ls",
+  "intro.txt vision.txt",
+  "",
+  "$ cat intro.txt",
+  "안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
+  "저희 동아리는 -----------------------------",
+  "-----------------------------------------",
+  "",
+  "$ cat vision.txt",
+  "저희의 목표는 ------------------------------"
 ];
 const speed = 10;          // 한 글자당 ms
 let line = 0, char = 0;
 const term = document.getElementById("term-text");
 
-function typeLine(){
-    if(line < lines.length){
-        if(char < lines[line].length){
-        term.textContent += lines[line].charAt(char++);
-        setTimeout(typeLine, speed);
-        }else{
-        term.textContent += "\n";
-        line++; char = 0;
-        setTimeout(typeLine, speed*4);
-        }
-    }else{
-        const cursor = document.createElement("span");
-        cursor.className = "cursor";
-        term.appendChild(cursor);
+// your existing typing function
+function typeLine() {
+  if (line < lines.length) {
+    if (char < lines[line].length) {
+      term.textContent += lines[line].charAt(char++);
+      setTimeout(typeLine, speed);
+    } else {
+      term.textContent += "\n";
+      line++; char = 0;
+      setTimeout(typeLine, speed * 4);
     }
+  } else {
+    const cursor = document.createElement("span");
+    cursor.className = "cursor";
+    term.appendChild(cursor);
+  }
+}
+
+// set up an observer that fires once when "#term-text" enters the viewport
+const observer = new IntersectionObserver((entries, obs) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      typeLine();
+      obs.unobserve(entry.target);  // stop observing once triggered
     }
-window.addEventListener("DOMContentLoaded", typeLine);
+  });
+}, {
+  threshold: 0.5  // fire when 50% of the element is visible
+});
+
+observer.observe(term);
