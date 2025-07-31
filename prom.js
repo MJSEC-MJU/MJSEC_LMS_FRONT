@@ -150,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ],
         [
         [0, 52.5, -10, -5],
-        [15, -5, -40, 60],
+        [90, 60, -40, 80],
         ],
         [
         [0, 50, 30, -20],
@@ -255,3 +255,5 @@ if (window.innerWidth > 0) {
         });
     }
 
+window.scrollTo({ left: 0});
+document.body.style.overflowX = "hidden";
