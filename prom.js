@@ -1,3 +1,4 @@
+
 //nav바 스크립트
 
 $(document).ready(function() {
@@ -58,12 +59,9 @@ contentButtons.forEach(button => {
         alert("지금은 신청 기간이 아닙니다!");
     });
 });
+
 let slide = document.querySelector('.slide');
 let items = document.querySelectorAll('.item');
-
-
-
-
 //화면 넘기기. 카드 클릭시.
 document.querySelectorAll('.item').forEach(item => {
     item.addEventListener('click', () => {
@@ -91,49 +89,169 @@ cardsContainer.addEventListener("mousemove", (e) => {
 });
 //소개페이지 js
 const lines = [
-  "$ ls",
-  "intro.txt vision.txt",
-  "",
-  "$ cat intro.txt",
-  "안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
-  "저희 동아리는 -----------------------------",
-  "-----------------------------------------",
-  "",
-  "$ cat vision.txt",
-  "저희의 목표는 ------------------------------"
+    "$ ls",
+    "intro.txt vision.txt",
+    "",
+    "$ cat intro.txt",
+    "안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
+    "저희 동아리는 -----------------------------",
+    "-----------------------------------------",
+    "",
+    "$ cat vision.txt",
+    "저희의 목표는 ------------------------------"
 ];
 const speed = 10;          // 한 글자당 ms
 let line = 0, char = 0;
 const term = document.getElementById("term-text");
 
-// your existing typing function
-function typeLine() {
-  if (line < lines.length) {
-    if (char < lines[line].length) {
-      term.textContent += lines[line].charAt(char++);
-      setTimeout(typeLine, speed);
-    } else {
-      term.textContent += "\n";
-      line++; char = 0;
-      setTimeout(typeLine, speed * 4);
+function typeLine(){
+    if(line < lines.length){
+        if(char < lines[line].length){
+        term.textContent += lines[line].charAt(char++);
+        setTimeout(typeLine, speed);
+        }else{
+        term.textContent += "\n";
+        line++; char = 0;
+        setTimeout(typeLine, speed*4);
+        }
+    }else{
+        const cursor = document.createElement("span");
+        cursor.className = "cursor";
+        term.appendChild(cursor);
     }
-  } else {
-    const cursor = document.createElement("span");
-    cursor.className = "cursor";
-    term.appendChild(cursor);
-  }
-}
-
-// set up an observer that fires once when "#term-text" enters the viewport
-const observer = new IntersectionObserver((entries, obs) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      typeLine();
-      obs.unobserve(entry.target);  // stop observing once triggered
     }
-  });
-}, {
-  threshold: 0.5  // fire when 50% of the element is visible
-});
+window.addEventListener("DOMContentLoaded", typeLine);
 
-observer.observe(term);
+
+//FAQ js코드
+document.addEventListener("DOMContentLoaded", () => {
+    const lenis = new Lenis();
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add((time) => {
+        lenis.raf(time * 1000);
+    });
+    gsap.ticker.lagSmoothing(0);
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    const stickySection = document.querySelector(".sticky");
+    const stickyHeader = document.querySelector(".sticky-header");
+    const cards = document.querySelectorAll(".card");
+    const stickyHeight = window.innerHeight * 6;
+
+    const transforms = [
+        [
+        [0, 50, -10, 10],
+        [20, -10, -45, 20],
+        ],
+        [
+        [0, 10, -40, 45],
+        [-25, 15, -45, 30],
+        ],
+        [
+        [0, 52.5, -10, -5],
+        [15, -5, -40, 60],
+        ],
+        [
+        [0, 50, 30, -20],
+        [20, -10, 60, 5],
+        ],
+        [
+        [0, 55, -15, 30],
+        [25, -15, 60, -15],
+        ],
+    ];
+
+
+
+ScrollTrigger.create({
+    trigger: stickySection,
+    start: "top top",
+    end: `+=${stickyHeight}px`,
+    pin: true,
+    pinSpacing: true,
+        onUpdate: (self) => {
+        const progress = self.progress;
+
+        const maxTranslate = stickyHeader.offsetWidth - window.innerWidth;
+        const translateX = -progress * maxTranslate;
+        gsap.set(stickyHeader, { x: translateX });
+
+        cards.forEach((card, index) => {
+            const delay = index * 0.1125;
+            const cardProgress = Math.max(0, Math.min((progress - delay) * 2, 1));
+
+            if (cardProgress > 0) {
+            const cardStartX = 25;
+            const cardEndX = -650;
+            const yPos = transforms[index][0];
+            const rotations = transforms[index][1];
+
+            const cardX = gsap.utils.interpolate(
+                cardStartX,
+                cardEndX,
+                cardProgress
+            );
+
+            const yProgress = cardProgress * 3;
+            const yIndex = Math.min(Math.floor(yProgress), yPos.length - 2);
+            const yInterpolation = yProgress - yIndex;
+            const cardY = gsap.utils.interpolate(
+                yPos[yIndex],
+                yPos[yIndex + 1],
+                yInterpolation
+            );
+
+            const cardRotation = gsap.utils.interpolate(
+                rotations[yIndex],
+                rotations[yIndex + 1],
+                yInterpolation
+            );
+
+            gsap.set(card, {
+                xPercent: cardX,
+                yPercent: cardY,
+                rotation: cardRotation,
+                opacity: 1,
+            });
+            } else {
+            gsap.set(card, { opacity: 0 });
+            }
+        });
+        },
+    });
+    });
+
+    //타임라인 프로그레스바 화면 벗어나면 사라지게끔
+if (window.innerWidth > 0) {
+    ScrollTrigger.create({
+        trigger: ".timeline",
+        start: "top bottom",
+        end: "bottom top",
+    onEnter: () => {
+        const progressBar = document.querySelector(".timeline-progress-bar");
+        if (progressBar) {
+            progressBar.style.display = "block";
+        }
+        },
+    onLeave: () => {
+        const progressBar = document.querySelector(".timeline-progress-bar");
+        if (progressBar) {
+            progressBar.style.display = "none";
+        }
+        },
+        onEnterBack: () => {
+        const progressBar = document.querySelector(".timeline-progress-bar");
+        if (progressBar) {
+            progressBar.style.display = "block";
+        }
+        },
+        onLeaveBack: () => {
+        const progressBar = document.querySelector(".timeline-progress-bar");
+        if (progressBar) {
+            progressBar.style.display = "none";
+        }
+        },
+        });
+    }
+

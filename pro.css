@@ -5,8 +5,12 @@
   border: 0;
   box-sizing: border-box;
 }
+html{
+  overflow-x:hidden;
+}
 body{
   background-color: black;
+
 }
 
 /* #region nav바 */
@@ -162,11 +166,6 @@ a {
 }
 /* #endregion */
 
-img {
-  object-fit: cover;
-}
-
-
 /* *************************************          메인 페이지 css          ******************************** */
 /* #region 메인 페이지 */
 .first-page{
@@ -181,11 +180,13 @@ img {
     url(1rd-pics/bg.jpg);
 	background-repeat: no-repeat;
 	background-size: cover;
+  z-index:777;
 }
 .banner{
-    height: 100vh;
-    overflow: hidden;
-    position: relative;
+  width:100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
 .product{
     position: absolute;
@@ -271,9 +272,6 @@ img {
 }
 /* #endregion */
 
-
-
-<<<<<<< HEAD
 
 /* *************************************          소개 페이지 css          ******************************** */
 
@@ -376,92 +374,6 @@ img {
   animation:blink .8s steps(2) infinite;
 }
 @keyframes blink{50%{opacity:0;}}
-
-
-
-
-
-
-.fourth-page {
-  height: 100vh;
-  position: relative;
-}
-
-.faq-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1vh;
-  font-weight: bold;
-  font-size: 1.8vw;
-  margin-left: 5vw;
-}
-
-.faq-text p {
-  font-weight: normal;
-  font-size: 1vw;
-}
-
-.faq-boxes {
-  flex: 2;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(4, auto);
-  gap: 2vh 2vw;
-  width: 70%;
-}
-
-.faq-box {
-  background-color: #ccc;
-  height: 15vh;
-  border-radius: 0.5vw;
-  padding: 1vw;
-  box-sizing: border-box;
-  cursor: pointer;
-  user-select: none;
-  box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  font-size: 1vw;
-  font-weight: 600;
-  position: relative;
-  transition: background-color 0.3s ease;
-}
-
-.faq-box:hover {
-  background-color: #8a8a8a;
-}
-
-.faq-box::before {
-  content: attr(data-subtitle);
-  font-size: 0.8vw;
-  font-weight: normal;
-  color: #000000;
-  position: absolute;
-  top: 1vh;
-  left: 1vw;
-}
-
-.faq-box span {
-  margin-top: 3vh;
-  font-size: 1.5vw;
-  font-weight: 700;
-}
-.logo-3d{
-  position: absolute;
-  right: 8vw;
-  bottom: 10vh;
-  width: 40vw;
-  height: auto;
-  z-index: 2;
-}
-
-.moving-bg{
-  transform: sclae(2);
-  z-index: -1;
-}
 /* #endregion */
 
 
@@ -477,6 +389,7 @@ img {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  z-index:777;
 }
 
 .container{
@@ -484,9 +397,8 @@ img {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 90vw;
-    height: 80vh;
-    box-shadow: 0 30px 50px #0c0297;
+    width: 100%;
+    height: 100vh;
 }
 
 .container .slide .item{
@@ -503,9 +415,6 @@ img {
     transition: 0.5s;
 }
 
-.add-page{
-    height:300vh;
-}
 .slide .item:nth-child(2),
 .slide .item:nth-child(1){
     top: 0;
@@ -688,23 +597,243 @@ img {
 }
 /* #endregion */
 
+/* #region 타임라인 페이지 */
+.timeline-title h2 {
+  font-size: 50px;
+  background: linear-gradient(to left, #2d02ee, #706904,#2d02ee,#706904,#2d02ee, #706904,#2d02ee,#706904);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+  padding: 120px 0;
+}
+
+.timeline {
+  z-index: 0;
+  position: relative;
+}
+
+.margin-bottom-medium {
+  margin-bottom: 32px;
+}
+
+
+.timeline-title {
+  background-color: #0a0a0a;
+  width: 100vw;
+}
+
+.timeline-list {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  position: relative;
+}
+
+.timeline-item {
+  z-index: 2;
+  grid-column-gap: 0px;
+  grid-row-gap: 0px;
+  grid-template-rows: auto;
+  grid-template-columns: 1fr 180px 1fr;
+  grid-auto-columns: 1fr;
+  padding-top: 80px;
+  padding-bottom: 80px;
+  display: grid;
+  position: relative;
+}
+
+.timeline_left {
+  text-align: right;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.timeline_centre {
+  justify-content: center;
+  display: flex;
+}
+
+.timeline-when {
+  color: #fff;
+  letter-spacing: -0.03em;
+  font-size: 48px;
+  line-height: 1.2;
+  position: sticky;
+  top: 50vh;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.timeline-text {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 50px;
+}
+
+.timeline_circle {
+  background-color: #fff;
+  border-radius: 100%;
+  width: 15px;
+  min-width: 15px;
+  max-width: 15px;
+  height: 15px;
+  min-height: 15px;
+  max-height: 15px;
+  position: sticky;
+  top: 50vh;
+  box-shadow: 0 0 0 8px #0a0a0a;
+}
+
+.timeline-progress {
+  z-index: -2;
+  background-color: #414141;
+  width: 3px;
+  height: 100%;
+  position: absolute;
+}
+
+.timeline-progress-bar {
+  z-index: -1;
+  background: linear-gradient(to top, #021aa1, #fffb00);
+  width: 3px;
+  height: 50vh;
+  position: fixed;
+  inset: 0 auto 50vh;
+  display:none
+}
+
+.section-timeline {
+  z-index: -3;
+  background-color: #0a0a0a;
+  position: relative;
+}
+
+/* #endregion*/
+
+/* #region FAQ 페이지 CSS */
+img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sticky {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: black;
+}
+
+.sticky-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 250vw;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  will-change: transform;
+}
+
+.sticky-header h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16vw;
+  letter-spacing: -0.05em;
+  line-height: 100%;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.card {
+  position: absolute;
+  top: 10%;
+  left: 100%;
+  width: 325px;
+  height: 500px;
+  background-color: black;
+  padding: 0.5em;
+  border: solid 2px white;
+  will-change: transform;
+  outline-offset: 0rem;
+  border-radius: 2rem;
+}
+
+.card .card-img {
+  width: 90%;
+  height: 200px;
+  border-radius: 0.5em;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.FAQ-card-content {
+  width: 100%;
+  height: 275px;
+  display: flex;
+  flex-direction: column;
+  gap:20px;
+  color: #fff;
+  padding: 0.5em;
+  
+}
+
+.FAQ-card-content h2 {
+  font-size: 42px;
+  font-weight: lighter;
+  letter-spacing: -0.005em;
+}
+.FAQ-card-content h2::after {
+  content:'';
+  width: 100%;
+  height: .15rem;
+  display:block;
+  background-color: rgb(255, 255, 255);
+  margin-top: 0.3rem;
+}
+
+.FAQ-card-content p {
+  font-size: 20px;
+  font-weight: lighter;
+  letter-spacing: -0.005em;
+  word-break: break-word;
+  hyphens:auto;
+}
+
+/* #endregion */
+
+
 
 
 /* *************************************          푸터 페이지 css          ******************************** */
 /* #region pre-footer 페이지 css */
 .pre-footer{
-  height:50vh;
-  justify-content: center; /* 가로 중앙 정렬 */
-  align-items: center;     /* 세로 중앙 정렬 */
-  overflow: hidden;        /* 혹시 모를 넘침 방지 */
+  height:70vh;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 90;
+  display:flex;
 }
   #cards {
-    padding-inline: 200px;
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
     justify-content: center;
     color:white;
+    width: 80%
 }
 
 .social-card {
@@ -811,12 +940,17 @@ img {
   color:rgb(88, 101, 242);
 }
 /* #endregion */
+
+
+
 /* #region 푸터 */
 footer{
+  width:100%;
   height:30vh;
   background-color: rgb(22, 22, 22);
 }
 /* #endregion */
+
 
 
 
