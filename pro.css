@@ -7,7 +7,8 @@
 }
 body{
   background-color: black;
-
+  overflow-x:hidden;
+  scroll-snap-type: x mandatory;
 }
 
 /* #region nav바 */
@@ -38,7 +39,7 @@ body{
 #trapezoid .expandHome{
     -webkit-transform: rotateX(180deg);
     transform: rotateX(180deg);
-    width: 33%
+    width: 25%
 }
 #trapezoid .sub-home{
     -webkit-transform: rotateX(180deg);
@@ -185,45 +186,6 @@ a {
   overflow: hidden;
   position: relative;
 }
-.product{
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 170px;
-    z-index: 2;
-    width: 500px;
-    transition: 0.7s;
-}
-.product .soda{
-    position: absolute;
-    bottom: 0;
-    left: calc(50%);
-    transform: translateX(-50%);
-}
-.soda{
-    --left: center;
-    background: 
-        var(--url) var(--left),
-        url(1rd-pics/mockup.png) 0 0;
-    background-size: auto 100%;
-    width: 220px;
-    aspect-ratio: 2 / 4;
-    background-blend-mode: multiply;
-    transition: 0.8s;
-    mask-image: url(1rd-pics/mockup.png);
-    mask-size: auto 100%;
-}
-.soda:nth-child(2){
-    opacity: 0;
-}
-.product:hover .soda:nth-child(2){
-    opacity: 1;
-    --left: 300px;
-}
-.product:hover .soda:nth-child(1){
-    opacity: 0;
-    --left: 500px;
-}
 
 .slogan{
     position: absolute;
@@ -314,10 +276,9 @@ a {
   justify-content: center;
   align-items: center;
   gap: 2vh;
-  background-image: url(video1.gif);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background: linear-gradient(to left, rgba(0, 65, 245, 0.479), #000), url(1rd-pics/bg.jpg);
+background-size: cover;
+background-position: top;
   z-index: 888;
 }
 .second-page::before{               /* 어두운 오버레이(가독성 ↑) */
@@ -673,6 +634,9 @@ a {
   font-weight: 500;
   line-height: 1.3;
   margin-bottom: 50px;
+  font-family: "Do Hyeon", sans-serif;
+  font-weight: 200;
+  font-style: normal;
 }
 
 .timeline_circle {
@@ -727,7 +691,7 @@ img {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: black;
+  background-color: #000000;
 }
 
 .sticky-header {
@@ -758,8 +722,8 @@ img {
   position: absolute;
   top: 10%;
   left: 100%;
-  width: 325px;
-  height: 500px;
+  width: 500px;
+  height: 300px;
   background-color: black;
   padding: 0.5em;
   border: solid 2px white;
@@ -770,10 +734,10 @@ img {
 
 .card .card-img {
   width: 90%;
-  height: 200px;
+  height: 100%;
   border-radius: 0.5em;
   overflow: hidden;
-  margin: 0 auto;
+  margin: 0 0;
 }
 
 .FAQ-card-content {
@@ -943,8 +907,66 @@ img {
 /* #region 푸터 */
 footer{
   width:100%;
-  height:30vh;
+  height:27vh;
   background-color: rgb(22, 22, 22);
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.club-name{
+  display:flex;
+  flex-direction: row;
+  color:white;
+  font-size:.7rem;
+  justify-content: center;
+  align-items: center;
+  position:relative;
+  right:5%;
+}
+.president-name{
+  font-size:1rem;
+}
+.mem-info::before{
+  content:"";
+  width: 30%;
+  height: 2px;
+  position:absolute;
+  top:-1.4rem;
+  background-color: #646363;
+}
+.mem-info{
+  display:flex;
+  flex-direction: row;
+  color:rgb(216, 216, 216);
+  font-size:.7rem;
+  justify-content: center;
+  align-items: center;
+  position:relative;
+}
+.president-info, .subpresident-info{
+  display:flex;
+  flex-direction: column;
+  color:rgb(214, 214, 214);
+  font-size:.9rem;
+  justify-content: center;
+  align-items: center;
+  margin: 0 20px;
+}
+.president-num, .president-email{
+  color: #646363;
+}
+.footer-location{
+  left:27%;
+  margin-bottom: 30px;
+  position:relative;
+}
+.copyright{
+  font-size:0.7rem;
+  color:#646363;
+  position:relative;
+  left:37%;
+  margin-top:20px;
 }
 /* #endregion */
 
