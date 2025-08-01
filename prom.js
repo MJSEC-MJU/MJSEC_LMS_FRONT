@@ -154,7 +154,7 @@ function typeLine1() {
                 setTimeout(() => {
                     isTyping = false;
                     erase();
-                }, 2000);
+                }, 3000);
             }
         }
     }
@@ -240,7 +240,7 @@ function typeLine3() {
                 setTimeout(() => {
                     isTyping = false;
                     erase();
-                }, 3000);
+                }, 2000);
             }
         }
     }
@@ -278,7 +278,7 @@ function setupTerminalAnimation(terminalElement, typingFunction) {
                     terminalElement.classList.add('typing-started');
                     typingFunction();
                 }
-                }, 1500);
+                }, 500);
                 
                 observer.unobserve(entry.target);
             }
@@ -425,6 +425,3 @@ if (window.innerWidth > 0) {
         },
         });
     }
-
-// window.scrollTo({ left: 0});
-// document.body.style.overflowX = "hidden";

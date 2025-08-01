@@ -370,9 +370,11 @@ a {
 @keyframes transUp{
   from{
     transform: translateY(100%) scale(0.3);
+    filter: blur(100px);
   }
   to{
     transform: translateY(0) scale(1);
+    filter: blur(0px);
   }
 }
 /* 3) 헤더바 + 신호등 ---------------------------------------------------- */
@@ -1085,6 +1087,17 @@ footer{
   animation-timeline: view(80% 10%)
 }
 @keyframes fadeup{
+  from{
+    filter: blur(20px)
+  }to{
+    filter: blur(0)
+  }
+}
+.fadeup1 {
+  animation: fadeup linear both;
+  animation-timeline: view(100% 10%)
+}
+@keyframes fadeup1{
   from{
     filter: blur(20px)
   }to{
