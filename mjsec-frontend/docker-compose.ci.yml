@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .          # 앞서 만든 multi‑stage 이미지
+    ports:
+      - "80:80"                                # 테스트 용으로 80만
+    environment:
+      - NODE_ENV=production

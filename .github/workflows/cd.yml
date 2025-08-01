@@ -1,0 +1,39 @@
+name: CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push app image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host:   ${{ secrets.HOST }}
+          user:   ${{ secrets.USER }}
+          key:    ${{ secrets.SSH_KEY }}
+          script: |
+            cd /srv/mjsec
+            git pull
+            ./mjsec-frontend/docker compose -f docker-compose.prod.yaml pull
+            ./mjsec-frontend/docker compose -f docker-compose.prod.yaml up -d --remove-orphans
