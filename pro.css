@@ -179,6 +179,7 @@ a {
 	background-repeat: no-repeat;
 	background-size: cover;
   z-index:777;
+  position: relative;
 }
 .banner{
   width:100%;
@@ -223,17 +224,44 @@ a {
     -webkit-text-fill-color: transparent;
 }
 
-.banner:has(.product:hover) .slogan div:nth-child(1){
+.banner:has(.join-btn:hover) .slogan div:nth-child(1){
     transform: translateX(-200px);
 }
-.banner:has(.product:hover) .slogan div:nth-child(2){
+.banner:has(.join-btn:hover) .slogan div:nth-child(2){
     transform: translateX(200px);
+}
+.join-btn{
+  padding: 1em 2em;
+  background-color: #161a20;
+  border:none;
+  color:#f0f0f0;
+  border-radius: 1000px;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+  position:absolute;
+  top:90%;
+  left:50%;
+  transform:translateX(-50%);
+  z-index: 10;
+}
+.join-btn::after{
+  content:"";
+  position:absolute;
+  height:100%;
+  width: 100%;
+  border-radius: 1000px;
+  background: red;
+  background-image: linear-gradient(to bottom right, yellow,blue);
+  z-index: -12;
+  top:0;
+  left:0;
 }
 /* #endregion */
 
 
 /* *************************************          소개 페이지 css          ******************************** */
-
 /* #region 소개 페이지 */
 .icon-bg.github:hover {
   background-color: #f0d1d1;
@@ -267,7 +295,6 @@ a {
   color: white;
 }
 /***여긴 소개페이지***/
-
 .second-page {
   height: 100vh;
   position: relative;
@@ -276,22 +303,29 @@ a {
   justify-content: center;
   align-items: center;
   gap: 2vh;
-  background: linear-gradient(to left, rgba(0, 65, 245, 0.479), #000), url(1rd-pics/bg.jpg);
-background-size: cover;
-background-position: top;
+  background-image: url(/video1.gif);
+  /* background: linear-gradient(to left, rgba(0, 65, 245, 0.479), #000), url(1rd-pics/bg.jpg); */
+  background-size: cover;
   z-index: 888;
 }
 .second-page::before{               /* 어두운 오버레이(가독성 ↑) */
   content:"";position:absolute;inset:0;
-  background:rgba(0,0,0,.45);
+  background:rgba(0, 0, 0, 0.596);
+}
+#term-text1, #term-text2, #term-text3{
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+  font-size:2rem;
 }
 
 /* 2) 맥 터미널 박스 ---------------------------------------------------- */
 .mac-terminal{
   position:absolute;
-  top:15%; left:5%;
-  width:48vw; max-width:640px;
-  min-height:540px;
+  top:40%; left:5%;
+  width:40vw;
+  height:50%;
   background:rgba(27,30,33,.85);      /* 반투명 다크 그레이 */
   border:1px solid #3d4248;
   border-radius:12px;
@@ -301,7 +335,46 @@ background-position: top;
   padding:54px 20px 24px;             /* 헤더 높이만큼 top padding ↑ */
   overflow:hidden;
 }
-
+.mac-terminal2{
+  position:absolute;
+  top:15%; left:20%;
+  width:40vw;
+  height: 40%;
+  background:rgba(27,30,33,.85);      /* 반투명 다크 그레이 */
+  border:1px solid #3d4248;
+  border-radius:12px;
+  box-shadow:0 0 18px #00f5ff55;
+  font:1.05rem/1.6 "SF Mono","Fira Code",monospace;
+  color:white;
+  padding:54px 20px 24px;             /* 헤더 높이만큼 top padding ↑ */
+  overflow:hidden;
+}
+.mac-terminal3{
+  position:absolute;
+  top:40%; left:50%;
+  width:40vw;
+  height:40%;
+  background:rgba(27,30,33,.85);      /* 반투명 다크 그레이 */
+  border:1px solid #3d4248;
+  border-radius:12px;
+  box-shadow:0 0 18px #00f5ff55;
+  font:1.05rem/1.6 "SF Mono","Fira Code",monospace;
+  color:white;
+  padding:54px 20px 24px;             /* 헤더 높이만큼 top padding ↑ */
+  overflow:hidden;
+}
+.transup{
+  animation: transUp 1.5s both;
+  animation-timeline: view(90% 10%);
+}
+@keyframes transUp{
+  from{
+    transform: translateY(100%) scale(0.3);
+  }
+  to{
+    transform: translateY(0) scale(1);
+  }
+}
 /* 3) 헤더바 + 신호등 ---------------------------------------------------- */
 .term-head{
   position:absolute;inset:0 0 auto 0;   /* 상단에 고정 */
@@ -348,6 +421,7 @@ background-position: top;
   justify-content: center;
   align-items: center;
   z-index:777;
+  background-color: #0a0a0a;
 }
 
 .container{
@@ -355,10 +429,10 @@ background-position: top;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 100%;
-    height: 100vh;
+    width: 90%;
+    height: 80vh;
+    box-shadow: 0 0 70px rgba(46, 2, 238, 0.6);
 }
-
 .container .slide .item{
     width: 15vw;
     height: 300px;
@@ -691,7 +765,7 @@ img {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: #000000;
+  background-color: #0a0a0a;
 }
 
 .sticky-header {
@@ -733,7 +807,7 @@ img {
 }
 
 .card .card-img {
-  width: 90%;
+  width: 100%;
   height: 100%;
   border-radius: 0.5em;
   overflow: hidden;
@@ -908,7 +982,7 @@ img {
 footer{
   width:100%;
   height:27vh;
-  background-color: rgb(22, 22, 22);
+  background-color: #0a0a0a;
   display:flex;
   flex-direction: column;
   justify-content: center;

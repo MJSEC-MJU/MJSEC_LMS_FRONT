@@ -95,53 +95,203 @@ cardsContainer.addEventListener("mousemove", (e) => {
     }
 });
 //소개페이지 js
-const lines = [
-  "$ ls",
-  "intro.txt vision.txt",
-  "",
-  "$ cat intro.txt",
-  "안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
-  "저희 동아리는 -----------------------------",
-  "-----------------------------------------",
-  "",
-  "$ cat vision.txt",
-  "저희의 목표는 ------------------------------"
+// 터미널 1용 텍스트
+const lines1 = [
+    "$ ls",
+    "goal.txt",
+    "",
+    "$ cat intro.txt",
+    ">>안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
+    "저희 동아리는 -----------------------------",
+    "-----------------------------------------"
+];
+
+// 터미널 2용 텍스트
+const lines2 = [
+    "$ ls",
+    "intro.txt",
+    "",
+    "$ cat intro.txt",
+    ">>안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
+    "저희 동아리는 -----------------------------",
+    "-----------------------------------------"
+];
+
+// 터미널 3용 텍스트
+const lines3 = [
+    "$ ls",
+    "vision.txt",
+    "",
+    "$ cat intro.txt",
+    ">>안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
+    "저희 동아리는 -----------------------------",
+    "-----------------------------------------"
 ];
 const speed = 10;          // 한 글자당 ms
 let line = 0, char = 0;
-const term = document.getElementById("term-text");
+const term1 = document.getElementById("term-text1");
+const term2 = document.getElementById("term-text2");
+const term3 = document.getElementById("term-text3");
 
-// your existing typing function
-function typeLine() {
-  if (line < lines.length) {
-    if (char < lines[line].length) {
-      term.textContent += lines[line].charAt(char++);
-      setTimeout(typeLine, speed);
-    } else {
-      term.textContent += "\n";
-      line++; char = 0;
-      setTimeout(typeLine, speed * 4);
+// 터미널 1용 타이핑 함수 (무한 반복)
+function typeLine1() {
+    let line = 0, char = 0;
+    let isTyping = true;
+    
+    function type() {
+        if (isTyping) {
+            if (line < lines1.length) {
+                if (char < lines1[line].length) {
+                    term1.textContent += lines1[line].charAt(char++);
+                    setTimeout(type, speed);
+                } else {
+                    term1.textContent += "\n";
+                    line++; char = 0;
+                    setTimeout(type, speed * 4);
+                }
+            } else {
+                // 타이핑 완료 후 잠시 대기
+                setTimeout(() => {
+                    isTyping = false;
+                    erase();
+                }, 2000);
+            }
+        }
     }
-  } else {
-    const cursor = document.createElement("span");
-    cursor.className = "cursor";
-    term.appendChild(cursor);
-  }
+    
+    function erase() {
+        if (!isTyping) {
+            if (term1.textContent.length > 0) {
+                term1.textContent = term1.textContent.slice(0, -1);
+                setTimeout(erase, speed / 2);
+            } else {
+                // 지우기 완료 후 다시 타이핑 시작
+                line = 0; char = 0;
+                isTyping = true;
+                setTimeout(type, 1000);
+            }
+        }
+    }
+    
+    type();
 }
 
-// set up an observer that fires once when "#term-text" enters the viewport
-const observer = new IntersectionObserver((entries, obs) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      typeLine();
-      obs.unobserve(entry.target);  // stop observing once triggered
+// 터미널 2용 타이핑 함수 (무한 반복)
+function typeLine2() {
+    let line = 0, char = 0;
+    let isTyping = true;
+    
+    function type() {
+        if (isTyping) {
+            if (line < lines2.length) {
+                if (char < lines2[line].length) {
+                    term2.textContent += lines2[line].charAt(char++);
+                    setTimeout(type, speed);
+                } else {
+                    term2.textContent += "\n";
+                    line++; char = 0;
+                    setTimeout(type, speed * 4);
+                }
+            } else {
+                // 타이핑 완료 후 잠시 대기
+                setTimeout(() => {
+                    isTyping = false;
+                    erase();
+                }, 4000);
+            }
+        }
     }
-  });
-}, {
-  threshold: 0.8  // fire when 50% of the element is visible
-});
+    
+    function erase() {
+        if (!isTyping) {
+            if (term2.textContent.length > 0) {
+                term2.textContent = term2.textContent.slice(0, -1);
+                setTimeout(erase, speed / 2);
+            } else {
+                // 지우기 완료 후 다시 타이핑 시작
+                line = 0; char = 0;
+                isTyping = true;
+                setTimeout(type, 1000);
+            }
+        }
+    }
+    
+    type();
+}
 
-observer.observe(term);
+// 터미널 3용 타이핑 함수 (무한 반복)
+function typeLine3() {
+    let line = 0, char = 0;
+    let isTyping = true;
+    
+    function type() {
+        if (isTyping) {
+            if (line < lines3.length) {
+                if (char < lines3[line].length) {
+                    term3.textContent += lines3[line].charAt(char++);
+                    setTimeout(type, speed);
+                } else {
+                    term3.textContent += "\n";
+                    line++; char = 0;
+                    setTimeout(type, speed * 4);
+                }
+            } else {
+                // 타이핑 완료 후 잠시 대기
+                setTimeout(() => {
+                    isTyping = false;
+                    erase();
+                }, 3000);
+            }
+        }
+    }
+    
+    function erase() {
+        if (!isTyping) {
+            if (term3.textContent.length > 0) {
+                term3.textContent = term3.textContent.slice(0, -1);
+                setTimeout(erase, speed / 2);
+            } else {
+                // 지우기 완료 후 다시 타이핑 시작
+                line = 0; char = 0;
+                isTyping = true;
+                setTimeout(type, 1000);
+            }
+        }
+    }
+    
+    type();
+}
+// transup 키프레임 후에 타이핑 효과 발동 하도록
+function setupTerminalAnimation(terminalElement, typingFunction) {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const handleAnimationEnd = () => {
+                typingFunction();
+                };
+                
+                terminalElement.addEventListener('animationend', handleAnimationEnd, { once: true });
+                
+                setTimeout(() => {
+                // transup 키프레임 시작 안 됏을 때
+                if (!terminalElement.classList.contains('typing-started')) {
+                    terminalElement.classList.add('typing-started');
+                    typingFunction();
+                }
+                }, 1500);
+                
+                observer.unobserve(entry.target);
+            }
+            });
+        }, { threshold: 0.8 });
+        
+    observer.observe(terminalElement);
+}
+
+// 터미널별 설정
+setupTerminalAnimation(term1, typeLine1);
+setupTerminalAnimation(term2, typeLine2);
+setupTerminalAnimation(term3, typeLine3);
 
 
 //FAQ js코드
