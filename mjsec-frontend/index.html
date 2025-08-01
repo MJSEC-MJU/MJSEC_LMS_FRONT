@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- ──── favicon & app icons ──── -->
+    <!-- 가장 먼저: ICO (레거시 브라우저) -->
+    <link rel="icon" href="./favicon.ico" />
+
+    <!-- PNG 계열 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+
+    <!-- PWA manifest & theme  -->
+    <link rel="manifest" href="./site.webmanifest" />
+    <meta name="msapplication-TileColor" content="#000000" />
+    <meta name="theme-color"           content="#000000" />
+
+    <!-- ──── Open Graph / SNS Preview ──── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:title"       content="MJSEC — Your Shield, Our Mission" />
+    <meta property="og:description" content="명지대학교 정보보안 동아리 MJSEC 공식 사이트" />
+    <meta property="og:image"       content="./og-card.png" />   <!-- 1200×630 권장 -->
+    <meta property="og:url"         content="https://mjsec.example.com" />
+
+    <!-- 트위터 카드 (축약) -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="MJSEC — Your Shield, Our Mission" />
+    <meta name="twitter:description" content="명지대학교 정보보안 동아리 MJSEC 공식 사이트" />
+    <meta name="twitter:image"       content="./og-card.png" />
+
+    <!-- ──── viewport & title ──── -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MJSEC</title>
+
+    <!-- ──── Web Fonts & FontAwesome (원본 그대로) ──── -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Karantina:wght@300;400;700&display=swap"  rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap"                   rel="stylesheet" />
+    <script src="https://kit.fontawesome.com/a6949b562b.js" crossorigin="anonymous"></script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- 진입 파일은 Vite 기본 경로 그대로 -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
