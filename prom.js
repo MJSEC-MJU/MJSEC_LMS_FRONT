@@ -1,3 +1,51 @@
+window.scrollTo(0,0)
+
+
+//인트로 페이지중에는 스크롤 막기
+document.body.style.overflowY = 'hidden';
+document.body.style.position = 'fixed';
+
+function preventScroll(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+}
+
+
+//인트로 페이지때 스크롤 내려지면 이상해서 스크롤 못하게 막음
+document.addEventListener('wheel', preventScroll, { passive: false });
+document.addEventListener('touchmove', preventScroll, { passive: false });
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'PageDown' || e.key === 'PageUp' || e.key === ' ') {
+        e.preventDefault();
+        return false;
+    }
+});
+
+TweenMax.staggerFrom(
+	".titles > div",
+	0.8,{x: "-60", ease: Power3.easeInOut, opacity: "0", }, 2 );
+	TweenMax.staggerTo(
+	".titles > div", 0.8, { x: "60", ease: Power3.easeInOut, delay: 1.2, opacity: "0", }, 2);
+
+setTimeout(function() {
+	TweenMax.to(".intro-section", 1.5, { y: "-100vh", ease: Power3.easeInOut,
+		onComplete: function() {
+			document.querySelector(".intro-section").style.display = "none";
+            document.body.style.overflowY = 'auto';
+            document.body.style.position = 'static'; // body 고정 해제
+
+            document.removeEventListener('wheel', preventScroll);
+            document.removeEventListener('touchmove', preventScroll);
+		}
+	});
+
+	TweenMax.fromTo(".main-section", 1.5, {y: "100vh"}, {y: "0", ease: Power3.easeInOut,delay: 0.3 });
+}, 6000);
+
+
+
+
 
 
 window.addEventListener('load', function() {
@@ -27,8 +75,8 @@ $(document).ready(function() {
 
 //nav바 스크롤 자동이동
 function scrollDown(event, multiple) {
-  event.preventDefault(); // a 태그 기본 이동 막기
-  window.scrollTo({ top: window.innerHeight * multiple, behavior: 'smooth' });
+    event.preventDefault();
+    window.scrollTo({ top: window.innerHeight * multiple, behavior: 'smooth' });
 }
 
 //활동 페이지 스크롤 js코드

@@ -1105,3 +1105,47 @@ footer{
   }
 }
 /* #endregion */
+
+h1.header {
+	font-family: "Bigilla" !important;
+	font-size: 200px;
+	text-transform: uppercase;
+	font-weight: bolder;
+	width: 90%;
+  color:white;
+}
+
+.header .letter {
+	display: inline-block;
+	line-height: 1em;
+}
+
+/* 인트로 섹션 */
+.intro-section {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100vh;
+	background: #000;
+	z-index: 1000;
+}
+
+.titles {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+.title {
+	position: absolute;
+  width:100vw;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+  text-align: center;
+}
+.titles h1 {
+	color: white;
+  font-size: 3rem;
+}
