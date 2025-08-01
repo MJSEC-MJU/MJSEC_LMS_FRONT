@@ -225,38 +225,60 @@ a {
 }
 
 .banner:has(.join-btn:hover) .slogan div:nth-child(1){
-    transform: translateX(-200px);
+    animation: sloganAnimation1 0.8s ease-in-out forwards;
 }
 .banner:has(.join-btn:hover) .slogan div:nth-child(2){
-    transform: translateX(200px);
+    animation: sloganAnimation2 0.8s ease-in-out forwards;
 }
-.join-btn{
-  padding: 1em 2em;
-  background-color: #161a20;
-  border:none;
-  color:#f0f0f0;
-  border-radius: 1000px;
+
+@keyframes sloganAnimation1 {
+    0% {
+        transform: translateX(0) rotate(0deg);
+    }
+    50% {
+        transform: translateX(0) rotate(25deg);
+    }
+    100% {
+        transform: translateX(-400px) translateY(0px) rotate(25deg);
+    }
+}
+
+@keyframes sloganAnimation2 {
+    0% {
+        transform: translateX(0) rotate(0deg);
+    }
+    50% {
+        transform: translateX(0) rotate(25deg);
+    }
+    100% {
+        transform: translateX(300px) translateY(190px) rotate(25deg);
+    }
+}
+.join-btn {
+  padding: 1.2em 2.5em;
+  background: transparent;
+  border: 2px solid #5134f5;
+  color: #fdfcff;
+  border-radius: 4px;
   font-family: "Orbitron", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 700;
-  font-style: normal;
-  position:absolute;
-  top:90%;
-  left:50%;
-  transform:translateX(-50%);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 3px;
+  position: absolute;
+  top: 90%;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
 }
-.join-btn::after{
-  content:"";
-  position:absolute;
-  height:100%;
-  width: 100%;
-  border-radius: 1000px;
-  background: red;
-  background-image: linear-gradient(to bottom right, yellow,blue);
-  z-index: -12;
-  top:0;
-  left:0;
+
+.join-btn:hover {
+  background: #5134f567;
+  box-shadow: 0 0 20px #5134f5;
+  transform: translateX(-50%) translateY(-2px);
 }
 /* #endregion */
 
@@ -826,29 +848,6 @@ img {
   padding: 0.5em;
   
 }
-
-.FAQ-card-content h2 {
-  font-size: 42px;
-  font-weight: lighter;
-  letter-spacing: -0.005em;
-}
-.FAQ-card-content h2::after {
-  content:'';
-  width: 100%;
-  height: .15rem;
-  display:block;
-  background-color: rgb(255, 255, 255);
-  margin-top: 0.3rem;
-}
-
-.FAQ-card-content p {
-  font-size: 20px;
-  font-weight: lighter;
-  letter-spacing: -0.005em;
-  word-break: break-word;
-  hyphens:auto;
-}
-
 /* #endregion */
 
 
@@ -938,7 +937,7 @@ img {
 }
 
 .card-content > i {
-    font-size: 10rem;
+    font-size: 8em;
     color: rgb(255, 255, 255);
 }
 .card-content p {
@@ -998,15 +997,15 @@ footer{
   justify-content: center;
   align-items: center;
   position:relative;
-  right:5%;
+  right:2%;
 }
 .president-name{
   font-size:1rem;
 }
 .mem-info::before{
   content:"";
-  width: 30%;
-  height: 2px;
+  width: 60%;
+  height: 1.3px;
   position:absolute;
   top:-1.4rem;
   background-color: #646363;
@@ -1033,7 +1032,7 @@ footer{
   color: #646363;
 }
 .footer-location{
-  left:27%;
+  left:30%;
   margin-bottom: 30px;
   position:relative;
 }
@@ -1148,4 +1147,179 @@ h1.header {
 .titles h1 {
 	color: white;
   font-size: 3rem;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+
+.FAQ-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    max-width: 100%;
+    margin: 0 auto;
+    height: 30vh;
+    margin-top:4rem;
+}
+
+.FAQ-box{
+    background-color: rgba(255, 255, 255, 0.12);
+    color:#eee;
+    padding:20px 20px;
+    font-family: monospace;
+    width:400px;
+    transition: 0.5s ease-in-out;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    border: solid 1px rgb(117, 117, 117);
+}
+
+.FAQ-box input[name^="readmore"]{
+    display: none;
+}
+
+.FAQ-box h1{
+    text-align: center;
+    margin:0;
+    font-family: "Do Hyeon", sans-serif;
+    font-weight:lighter;
+    font-style: normal;
+}
+
+.FAQ-box .FAQ-des{
+    text-align: justify;
+    position: relative;
+    overflow: hidden;
+    max-height: 0px;
+    transition: 0.5s ease-in-out;
+    margin: 20px 0 0 0;
+    padding: 0;
+    font-size:1rem;
+    font-family: "Do Hyeon", sans-serif;
+    font-weight: 200;
+    font-style: normal;
+}
+
+.FAQ-box .FAQ-des::before{
+    position: absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:50px;
+    transition: 0.5s ease-in-out;
+    content:'';
+    background-image: linear-gradient(to top, #375e79d7, transparent);
+}
+
+.FAQ-box .FAQ-button{
+    margin-top:30px;
+    text-align: center;
+    font-family: "Orbitron", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 200;
+    font-style: normal;
+}
+
+.FAQ-box label{
+    text-align: center;
+    display: inline-block;
+    border:1px solid #000;
+    width:140px;
+    height:50px;
+    position: relative;
+    cursor: pointer;
+    background-color: #313131;
+    border-radius: 5px;
+    transition: 0.3s ease;
+}
+
+.FAQ-box label:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.FAQ-box label::before{
+    position: absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    content:attr(data-more);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.FAQ-box input[name^="readmore"]:checked ~ .FAQ-content label::before{
+    content:attr(data-less);
+}
+
+.FAQ-box input[name^="readmore"]:checked ~ .FAQ-content .FAQ-des{
+    max-height: 300px;
+    margin-bottom: 20px;
+}
+
+.FAQ-box input[name^="readmore"]:checked ~ .FAQ-content .FAQ-des::before{
+    height: 0px;
+}
+
+.FAQ-content{
+    position: relative;
+}
+
+.FAQ-content::before{
+    position: absolute;
+    bottom:50px;
+    right:-2.5rem;
+    width:50px;
+    height: 70px;
+    content:'';
+    background-image: url(/1rd-pics/character.png);
+    background-size: 100%;
+    background-repeat: no-repeat;
+    z-index: 1;
+    transition: 2s ease-in-out;
+}
+
+.FAQ-content::after{
+    position: absolute;
+    bottom:-3rem;
+    right:-1rem;
+    transform: translate(70%,50%);
+    width:150px;
+    height: 150px;
+    content:'';
+    background-image: url(/1rd-pics/mockup-logo2.png);
+    background-size: 50%;
+    background-repeat: no-repeat;
+    z-index: 1;
+    transition: 2s ease-in-out;
+}
+
+.FAQ-box input[name^="readmore"]:checked ~ .FAQ-content::before{
+    bottom:80%;
+    right:100%;
+    transform: rotate(-50deg);
+}
+
+.FAQ-box input[name^="readmore"]:checked ~ .FAQ-content::after{
+    transform: translate(75%,55%) rotate(30deg);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .FAQ-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .FAQ-box {
+        width: 90%;
+        max-width: 400px;
+    }
 }

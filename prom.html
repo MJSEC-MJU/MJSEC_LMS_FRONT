@@ -34,7 +34,7 @@
                     <a class="sub-home" href=# onclick="scrollDown(event, 0)"><span></span>메인</span><span></span></a>
                     <a href=# class="expandHome" onclick="scrollDown(event, 1)"><span>소개</span><span></span></a>
                     <a href = # class="expandHome" onclick="scrollDown(event, 2)"><span>활동</span><span></span></a>
-                    <a href = # class="expandHome" onclick="scrollDown(event, 5.29)"><span>FAQ</span><span></span></a>
+                    <a href="#" class="expandHome" onclick="scrollToFAQ(event)"><span>FAQ</span><span></span></a>
                     <a href = # class="expandHome" onclick="alert('LMS페이지에 대한 접근 권한이 없습니다.')"><span>LMS</span><span></span></a>
             </div>
         </nav>
@@ -46,7 +46,7 @@
                 <div class="slogan-text right">No Hack</div>
             </div>
             <div class="center-button">
-                <button class="join-btn">CLICK ME</button>
+                <button class="join-btn" onclick="alert('지금은 모집 기간이 아닙니다!')">Join Us</button>
             </div>
     </section>
 
@@ -227,7 +227,7 @@
     </div>
 
     
-        <!--*********************************************************FAQ 페이지*********************************************************-->
+        <!--*********************************************************앨범 페이지*********************************************************-->
     <section class="sticky">
         <div class="sticky-header">
             <h1>MJSEC ALBUM</h1>
@@ -251,7 +251,60 @@
         </div>
         </section>
 
+        <!--*********************************************************FAQ 페이지*********************************************************-->
+            <div class="FAQ-container">
+        <div class="FAQ-box autoShow">
+            <input type="checkbox" name="readmore1" id="readmore1">
+            <div class="FAQ-content">
+                <h1>동아리에서 무엇을 배우나요?</h1>
+                <div class="FAQ-des">
+                    우리 동아리는 해킹과 정보보안을 배우는 곳이에요. 웹해킹, 리버싱(프로그램 구조 분석), 디지털 포렌식(디지털 증거 분석), 포너블(시스템 취약점 찾아내기), 앱 해킹 등 다양한 분야에서 실제로 어떻게 해킹이 이루어지는지 배우고, 이를 통해 어떻게 시스템을 안전하게 보호할 수 있는지 연구합니다. 단순히 나쁜 짓을 하는 게 아니라, 시스템의 약점을 찾아내고 보완하는 '화이트 해커'가 되는 것을 목표로 해요.
+                </div>
+                <div class="FAQ-button">
+                    <label for="readmore1" data-more="READ ANSWER" data-less="HIDE ANSWER"></label>
+                </div>
+            </div>
+        </div>
 
+        <div class="FAQ-box autoShow">
+            <input type="checkbox" name="readmore2" id="readmore2">
+            <div class="FAQ-content">
+                <h1>지원 자격은 어떻게 되나요?</h1>
+                <div class="FAQ-des">
+                    동아리 입단 문제를 푼 후에 해킹에 대한 열정과 끈기만 가지고 계시다면 누구든지 가능합니다!
+                </div>
+                <div class="FAQ-button">
+                    <label for="readmore2" data-more="READ ANSWER" data-less="HIDE ANSWER"></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="FAQ-box autoShow">
+            <input type="checkbox" name="readmore3" id="readmore3">
+            <div class="FAQ-content">
+                <h1>해킹 외의 다른 것도 배우나요?</h1>
+                <div class="FAQ-des">
+                    저희는 해킹 외에도 Python, C, JAVA와 같은 프로그래밍 언어도 멘토링 활동을 진행하고 있습니다. 외에도 방학에는 부원들끼리 여러가지 프로젝트를 진행하여 경험을 쌓기도 합니다!
+                </div>
+                <div class="FAQ-button">
+                    <label for="readmore3" data-more="READ ANSWER" data-less="HIDE ANSWER"></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="FAQ-box autoShow">
+            <input type="checkbox" name="readmore4" id="readmore4">
+            <div class="FAQ-content">
+                <h1>다른 문의사항이 있어요</h1>
+                <div class="FAQ-des">
+                    하단에 기재된 연락처로 언제든 편하게 연락해주시기 바랍니다
+                </div>
+                <div class="FAQ-button">
+                    <label for="readmore4" data-more="READ ANSWER" data-less="HIDE ANSWER"></label>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <section class="pre-footer autoShow">
             <div id="cards">
@@ -311,10 +364,10 @@
                         회장 이윤태
                     </div>
                     <div class="president-num">
-                        num : 010-0000-0000
+                        num : 010-9755-3453
                     </div>
                     <div class="president-email">
-                        email : abcde@gmail.com
+                        email : yoont1016@gmail.com
                     </div>
                 </div>
                 <div class="subpresident-info">
@@ -322,10 +375,10 @@
                         부회장 최윤호
                     </div>
                     <div class="president-num">
-                        num : 010-0000-0000
+                        num : 010-3023-4192
                     </div>
                     <div class="president-email">
-                        email : abcde@gmail.com
+                        email : gdool88@gmail.com
                     </div>
                 </div>
             </div>

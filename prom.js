@@ -473,3 +473,16 @@ if (window.innerWidth > 0) {
         },
         });
     }
+
+
+//FAQ버튼 스크롤시 중간 sticky페이지 때문에 화면의 세로 길이에 따라 이동 구간이 달라져서 함수 추가
+function scrollToFAQ(event) {
+    event.preventDefault();
+    const faqSection = document.querySelector('.FAQ-container');
+    if (faqSection) {
+        faqSection.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+}
