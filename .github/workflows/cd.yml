@@ -4,10 +4,15 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,22 +23,37 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push app image
+      - name: Build & push frontend image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./mjsec-forntend
+          context: ./mjsec-frontend
+          file: ./mjsec-frontend/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v0.1.7
         with:
-          host:   ${{ secrets.HOST }}
-          user:   ${{ secrets.USER }}
-          key:    ${{ secrets.SSH_KEY }}
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
           script: |
+            set -e
+
+            echo "① 코드 디렉토리로 이동 및 동기화"
+            if [ ! -d /srv/mjsec ]; then
+              echo "/srv/mjsec 디렉토리가 없음"
+              exit 1
+            fi
             cd /srv/mjsec
-            git pull
-            ./mjsec-frontend/docker compose -f docker-compose.prod.yaml pull
-            ./mjsec-frontend/docker compose -f docker-compose.prod.yaml up -d --remove-orphans
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "② 최신 이미지 풀 & 컨테이너 재기동"
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml pull
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
+
+            echo "③ 불필요한 이미지 정리"
+            docker image prune -f

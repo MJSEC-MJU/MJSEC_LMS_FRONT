@@ -1,26 +1,23 @@
-
+######################## 1) Build stage ################################
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
-# ① package.json + lockfile만 먼저 복사 → npm ci 캐시 활용
+# 1‑1. lock 파일까지 복사 → devDeps까지 모두 설치
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev           # devDeps 제외(원하면 전체 설치로 변경 가능)
+RUN npm ci                       #  ←  devDeps 포함!
 
-# ② 나머지 소스 전체 복사
+# 1‑2. 소스 복사 + 빌드
 COPY . .
+RUN npm run build                #  /app/dist 생성
 
-# ③ vite build → /app/dist
-RUN npm run build
-
+######################## 2) Runtime stage ##############################
 FROM nginx:stable-alpine
 
-# ④ 커스텀 Nginx 설정 덮어쓰기 (80, 443 등)
+# 2‑1. 커스텀 nginx 설정
 COPY docker/nginx/ /etc/nginx/conf.d/
 
-# ⑤ build 결과물을 html 루트로 복사
+# 2‑2. 정적 파일만 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
-STOPSIGNAL SIGTERM
-CMD ["nginx" , "-g" , "daemon off;"]
+CMD ["nginx","-g","daemon off;"]
