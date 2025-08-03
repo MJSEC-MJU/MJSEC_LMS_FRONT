@@ -16,8 +16,11 @@ export default function Navbar({ onFaqClick, onMainClick, onIntroClick, onActivi
   };
 
   const handleMobileMenuClick = (onClick) => {
+    console.log("Mobile menu clicked"); // 디버깅용
     setIsMenuOpen(false);
-    onClick();
+    if (onClick && typeof onClick === 'function') {
+      onClick();
+    }
   };
 
   const Item = ({ text, onClick, className, spanRef }) => (
@@ -73,11 +76,26 @@ export default function Navbar({ onFaqClick, onMainClick, onIntroClick, onActivi
       </nav>
 
       <div className={`mobile-menu ${isMenuOpen === true ? 'active' : ''}`}>
-        <a href="#" onClick={() => handleMobileMenuClick(onMainClick)}>메인</a>
-        <a href="#" onClick={() => handleMobileMenuClick(onIntroClick)}>소개</a>
-        <a href="#" onClick={() => handleMobileMenuClick(onActivityClick)}>활동</a>
-        <a href="#" onClick={() => handleMobileMenuClick(onFaqClick)}>FAQ</a>
-        <a href="#" onClick={() => handleMobileMenuClick(() => alert("LMS페이지에 대한 접근 권한이 없습니다."))}>LMS</a>
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
+          handleMobileMenuClick(onMainClick);
+        }}>메인</a>
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
+          handleMobileMenuClick(onIntroClick);
+        }}>소개</a>
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
+          handleMobileMenuClick(onActivityClick);
+        }}>활동</a>
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
+          handleMobileMenuClick(onFaqClick);
+        }}>FAQ</a>
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
+          handleMobileMenuClick(() => alert("LMS페이지에 대한 접근 권한이 없습니다."));
+        }}>LMS</a>
       </div>
     </>
   );
