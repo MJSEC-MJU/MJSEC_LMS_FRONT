@@ -1,33 +1,59 @@
-# 80 → 443 리다이렉트 + ACME challenge
-server {
-    listen 80;
-    server_name mjsec.example.com;
+name: CD
 
-    # Let's Encrypt challenge
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
+on:
+  push:
+    branches: [ "main" ]
 
-    # 모든 일반 요청은 HTTPS 로 전환
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
+permissions:
+  contents: read
+  packages: write
 
-# 443 SSL
-server {
-    listen 443 ssl http2;
-    server_name mjsec.example.com;
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
 
-    ssl_certificate     /etc/letsencrypt/live/mjsec.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/mjsec.example.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+    steps:
+      - uses: actions/checkout@v4
 
-    location / {
-        proxy_pass         http://app:80;
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mjsec-frontend
+          file: ./mjsec-frontend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          script: |
+            set -e
+
+            echo "① 코드 디렉토리로 이동 및 동기화"
+            if [ ! -d /srv/mjsec ]; then
+              echo "/srv/mjsec 디렉토리가 없음"
+              exit 1
+            fi
+            cd /srv/mjsec
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "② 최신 이미지 풀 & 컨테이너 재기동"
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml pull
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
+
+            echo "③ 불필요한 이미지 정리"
+            docker image prune -f
