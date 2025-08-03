@@ -44,7 +44,7 @@ export default function SecondPage() {
   useEffect(() => {
     const lines1 = [
       "$ ls","goal.txt","",
-      "$ cat intro.txt",
+      "$ cat goal.txt",
       ">>안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
       "저희 동아리는 -----------------------------","-----------------------------------------"
     ];
@@ -56,7 +56,7 @@ export default function SecondPage() {
     ];
     const lines3 = [
       "$ ls","vision.txt","",
-      "$ cat intro.txt",
+      "$ cat vision.txt",
       ">>안녕하십니까 명지대학교 보안동아리 Mjsec입니다.",
       "저희 동아리는 -----------------------------","-----------------------------------------"
     ];
