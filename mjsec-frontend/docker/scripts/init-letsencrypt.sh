@@ -1,37 +1,35 @@
+#!/usr/bin/env bash
 set -euo pipefail
 
-# 0) .env 가 있으면 읽어 들이기
+# 0) .env 로딩
 if [[ -f .env ]]; then
   set -o allexport
   source .env
   set +o allexport
 fi
 
-# 1) 변수 확보 (우선순위: 인자 > ENV > .env)
+# 1) 파라미터/ENV 확인
 DOMAIN="${1:-${DOMAIN:-}}"
 EMAIL="${2:-${EMAIL:-}}"
+[[ -z "$DOMAIN" ]] && { echo "❌ DOMAIN 이 없습니다"; exit 1; }
 
-if [[ -z "${DOMAIN}" ]]; then
-  echo "DOMAIN 변수가 없습니다 (.env 또는 인자로 전달하세요)"
-  exit 1
-fi
-
-# 2) certbot 옵션 구성
-EMAIL_OPT="--no-eff-email"
-if [[ -z "${EMAIL}" ]]; then
-  echo "EMAIL 이 없어 --register-unsafely-without-email 로 진행합니다"
-  EMAIL_OPT="--register-unsafely-without-email"
+# 2) Certbot 이메일 옵션
+if [[ -z "$EMAIL" ]]; then
+  echo "⚠️  EMAIL 미입력 → --register-unsafely-without-email"
+  EMAIL_OPT="--register-unsafely-without-email --no-eff-email"
 else
-  EMAIL_OPT="--email ${EMAIL} --no-eff-email"
+  EMAIL_OPT="--email $EMAIL --no-eff-email"
 fi
 
-echo "▶︎ DOMAIN = ${DOMAIN}"
+echo "▶︎ DOMAIN = $DOMAIN"
 echo "▶︎ EMAIL  = ${EMAIL:-<none>}"
 
-
-# 3) 실제 certbot 실행
-docker compose -f mjsec-frontend/docker-compose.prod.yaml run --rm \
+# 3) Certbot 1회 발급
+docker compose \
+  --env-file .env \
+  -f mjsec-frontend/docker-compose.prod.yaml \
+  run --rm \
   --entrypoint certbot certbot \
   certonly --webroot -w /var/www/certbot \
-  --agree-tos ${EMAIL_OPT} \
-  -d "${DOMAIN}"
+  --agree-tos $EMAIL_OPT \
+  -d "$DOMAIN"
