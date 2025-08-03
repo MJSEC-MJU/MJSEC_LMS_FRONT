@@ -876,6 +876,7 @@ a {
   padding-bottom: 80px;
   display: grid;
   position: relative;
+  min-width: 0; /* 추가: Grid 아이템이 축소될 수 있도록 */
 }
 
 .timeline_left {
@@ -889,6 +890,12 @@ a {
   display: flex;
 }
 
+.timeline_right {
+  text-align: left;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
 .timeline-when {
   color: #fff;
   letter-spacing: -0.03em;
@@ -900,6 +907,8 @@ a {
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
+  word-wrap: break-word; /* 추가: 긴 텍스트 줄바꿈 */
+  overflow-wrap: break-word; /* 추가: 긴 텍스트 줄바꿈 */
 }
 
 .timeline-text {
@@ -1496,5 +1505,40 @@ h1.header {
     .FAQ-box {
         width: 90%;
         max-width: 400px;
+    }
+}
+
+/* 타임라인 반응형 */
+@media screen and (max-width: 767px) {
+    .timeline-title h2 {
+        font-size: 40px;
+    }
+
+    .timeline-item {
+        grid-template-columns: 64px 1fr;
+        width: 100%;
+    }
+
+    .timeline_left {
+        text-align: left;
+        grid-area: 1 / 2 / 2 / 3;
+    }
+
+    .timeline_centre {
+        justify-content: flex-start;
+        grid-area: 1 / 1 / 3 / 2;
+    }
+
+    .timeline-when {
+        margin-bottom: 24px;
+        font-size: 36px;
+    }
+
+    .timeline-text {
+        font-size: 20px;
+    }
+
+    .timeline-progress {
+        left: 6px;
     }
 }

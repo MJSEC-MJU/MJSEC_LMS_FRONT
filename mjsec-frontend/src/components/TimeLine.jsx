@@ -29,7 +29,7 @@ export default function Timeline() {
         <div className="timeline-list">
           <div className="timeline-progress"><div className="timeline-progress-bar" /></div>
 
-          {/* 1st Item */}
+          {/* 1st Item */}
           <div className="timeline-item">
             <div className="timeline_left fadeup"><div className="timeline-when">2024&nbsp;2nd&nbsp;sem</div></div>
             <div className="timeline_centre"><div className="timeline_circle" /></div>
@@ -39,7 +39,7 @@ export default function Timeline() {
             </div>
           </div>
 
-          {/* 2nd Item */}
+          {/* 2nd Item */}
           <div className="timeline-item">
             <div className="timeline_left fadeup"><div className="timeline-when">2024&nbsp;winter</div></div>
             <div className="timeline_centre"><div className="timeline_circle" /></div>
@@ -49,7 +49,7 @@ export default function Timeline() {
             </div>
           </div>
 
-          {/* 3rd Item */}
+          {/* 3rd Item */}
           <div className="timeline-item">
             <div className="timeline_left fadeup"><div className="timeline-when">2025&nbsp;1st&nbsp;sem</div></div>
             <div className="timeline_centre"><div className="timeline_circle" /></div>
@@ -59,7 +59,7 @@ export default function Timeline() {
             </div>
           </div>
 
-          {/* 4th Item */}
+          {/* 4th Item */}
           <div className="timeline-item">
             <div className="timeline_left fadeup"><div className="timeline-when">2025&nbsp;summer</div></div>
             <div className="timeline_centre"><div className="timeline_circle" /></div>
