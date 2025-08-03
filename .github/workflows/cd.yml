@@ -15,6 +15,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Prepare image tag (lower‑case)
+        id: prep
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:latest"   # ,,: bash lower-case
+          echo "image_tag=$IMAGE" >> "$GITHUB_OUTPUT"
+
 
       - name: Log in to ghcr.io
         uses: docker/login-action@v3
@@ -29,7 +37,7 @@ jobs:
           context: ./mjsec-frontend
           file: ./mjsec-frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ${{ steps.prep.outputs.image_tag }}
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
