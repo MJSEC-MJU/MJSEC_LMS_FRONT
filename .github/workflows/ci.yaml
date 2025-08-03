@@ -17,7 +17,7 @@ jobs:
 
       - name: Run container & simple health‑check
         run: |
-          docker compose -f mjsec-frontend/docker-compose.ci.yaml up -d
+          docker compose -f mjsec-frontend/docker-compose.ci.yml up -d
           curl --retry 5 --retry-delay 2 --fail http://localhost | grep -qi "mjsec"
-          docker compose -f mjsec-frontend/docker-compose.ci.yaml down
+          docker compose -f mjsec-frontend/docker-compose.ci.yml down
 
