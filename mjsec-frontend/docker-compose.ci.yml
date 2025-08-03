@@ -4,11 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        ENV: ci         # 앞서 만든 multi‑stage 이미지
+        ENV: ci
     ports:
-      - "8080:80"                             
-  healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost"]
-      interval: 5s
-      timeout: 2s
-      retries: 5  
+      - "8080:80"
+
+    # ← 반드시 service 블록 **안쪽**에 위치
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost || exit 1"]
+      interval: 5s      # (옵션) 기본 30 s
+      timeout: 2s       # (옵션) 기본 30 s
+      retries: 5        # (옵션) 기본 3
+      start_period: 3s  # (옵션) 컨테이너 기동 이후 유예시간
