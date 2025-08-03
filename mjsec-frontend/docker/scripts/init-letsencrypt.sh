@@ -29,7 +29,8 @@ echo "▶︎ DOMAIN = ${DOMAIN}"
 echo "▶︎ EMAIL  = ${EMAIL:-<none>}"
 
 # 3) 실제 certbot 실행
-docker compose -f mjsec-frontend/docker-compose.prod.yaml run --rm certbot \
+docker compose -f mjsec-frontend/docker-compose.prod.yaml run --rm \
+  --entrypoint certbot certbot \
   certonly --webroot -w /var/www/certbot \
   --agree-tos ${EMAIL_OPT} \
   -d "${DOMAIN}"
