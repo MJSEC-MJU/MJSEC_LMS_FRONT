@@ -5,7 +5,7 @@ import Navbar        from "./components/NavBar";
 import FirstPage     from "./components/FirstPage";
 import SecondPage    from "./components/SecondPage";
 import ThirdPage     from "./components/ThirdPage";
-import Timeline      from "./components/Timeline";
+import Timeline      from "./components/TimeLine";
 import StickyAlbum   from "./components/StickyAlbum";
 import FaqSection    from "./components/FaqSection";  
 import PreFooter     from "./components/PreFooter";

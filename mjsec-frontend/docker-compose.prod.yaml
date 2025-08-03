@@ -1,0 +1,36 @@
+services:
+  app:
+    image: ghcr.io/${ORG}/${REPO}:latest
+    restart: always
+
+  nginx:
+    image: nginx:stable-alpine
+    restart: always
+    depends_on:
+      - app
+    environment:                 # 👈 템플릿 치환 대상 변수
+      DOMAIN: ${DOMAIN}
+      APP_UPSTREAM: app:80
+    volumes:
+      # 템플릿 파일만 마운트 ➜ /etc/nginx/templates/...
+      - ./docker/nginx/default.prod.template:/etc/nginx/templates/default.prod.template:ro
+      # Certbot 인증서 경로
+      - certbot-etc:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+
+  certbot:
+    image: certbot/certbot:latest
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do sleep 12h & wait $${!};
+             certbot renew --webroot -w /var/www/certbot --quiet \
+             && nginx -s reload; done"
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+
+volumes:
+  certbot-etc:
+  certbot-webroot:
