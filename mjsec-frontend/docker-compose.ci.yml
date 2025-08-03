@@ -2,7 +2,7 @@ version: "3.9"
 services:
   app:
     build:
-      context: ./mjsec-frontend 
+      context: .
       dockerfile: Dockerfile         # 앞서 만든 multi‑stage 이미지
     ports:
       - "80:80"                                # 테스트 용으로 80만
