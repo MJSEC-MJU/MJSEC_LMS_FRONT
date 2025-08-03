@@ -1,25 +1,26 @@
-# 1) Build your React app
+
 FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-# install deps
-COPY package*.json ./
-RUN npm ci
+# ① package.json + lockfile만 먼저 복사 → npm ci 캐시 활용
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev           # devDeps 제외(원하면 전체 설치로 변경 가능)
 
-# copy everything else (src/, vite.config.js, public/, etc.)
+# ② 나머지 소스 전체 복사
 COPY . .
-RUN echo "→ src/components:" && ls -l src/components
-# build into /app/dist
+
+# ③ vite build → /app/dist
 RUN npm run build
 
-# 2) Spin up nginx for static hosting
 FROM nginx:stable-alpine
-# replace default nginx.conf if you have one:
-COPY mjsec-frontend/docker/nginx/ /etc/nginx/conf.d/
 
-# copy built output to nginx html dir
+# ④ 커스텀 Nginx 설정 덮어쓰기 (80, 443 등)
+COPY docker/nginx/ /etc/nginx/conf.d/
+
+# ⑤ build 결과물을 html 루트로 복사
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# expose and run
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+STOPSIGNAL SIGTERM
+CMD ["nginx" , "-g" , "daemon off;"]
