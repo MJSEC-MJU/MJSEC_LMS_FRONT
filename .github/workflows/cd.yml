@@ -89,32 +89,27 @@ jobs:
               | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           fi
 
-          ######################################################
-          ## ④  HTTP‑only Nginx 기동 (BOOTSTRAP=http)
-          ######################################################
+          ##############################
+          # ① HTTP‑only 기동
+          ##############################
           export BOOTSTRAP=http
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml up -d nginx
-
-          ######################################################
-          ## ⑤  Certbot 최초 발급 (없을 때만)
-          ######################################################
-          if [ ! -f "./certbot-etc/live/${DOMAIN}/fullchain.pem" ]; then
-            chmod +x ./mjsec-frontend/docker/scripts/init-letsencrypt.sh
-            ./mjsec-frontend/docker/scripts/init-letsencrypt.sh || {
-              echo '❌ SSL bootstrap failed'; exit 1; }
-          else
-            echo "✅ SSL cert already present – skip bootstrap"
-          fi
-
-          ######################################################
-          ## ⑥  전체 스택 재기동 (BOOTSTRAP unset → SSL 템플릿)
-          ######################################################
           unset BOOTSTRAP
+
+          ##############################
+          # ② 최초 또는 갱신 Certbot
+          ##############################
+          mjsec-frontend/docker/scripts/init-letsencrypt.sh   # ← 패치된 버전
+
+          ##############################
+          # ③ 전체 스택 SSL 모드 재기동
+          ##############################
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml pull
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
+
 
           ######################################################
           ## ⑦  디스크 청소
