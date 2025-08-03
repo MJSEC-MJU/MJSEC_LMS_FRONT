@@ -12,7 +12,6 @@ import PreFooter     from "./components/PreFooter";
 import Footer        from "./components/Footer";
 
 export default function App() {
-  const faqRef = useRef(null);           // FAQ 스크롤 타깃S
   const faqRef = useRef(null);           // FAQ 스크롤 타깃
   const mainRef = useRef(null);          // 메인 스크롤 타깃
   const introRef = useRef(null);         // 인트로 스크롤 타깃
