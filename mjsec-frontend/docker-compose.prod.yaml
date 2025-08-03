@@ -8,7 +8,7 @@ services:
     restart: always
     depends_on:
       - app
-    environment:                 # 👈 템플릿 치환 대상 변수
+    environment:               
       DOMAIN: ${DOMAIN}
       APP_UPSTREAM: app:80
     volumes:
