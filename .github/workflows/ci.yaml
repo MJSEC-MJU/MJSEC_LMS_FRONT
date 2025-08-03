@@ -24,7 +24,7 @@ jobs:
         run: |
           # docker compose wait 은 Compose v2.24+ 필요
           docker compose -f mjsec-frontend/docker-compose.ci.yml \
-            wait -t 60 app   # 60초 타임아웃
+            wait --timeout 60s app   # 60초 타임아웃
           # 컨테이너가 healthy 가 되면 HEAD만 날려 200 확인
           curl --fail --silent --head http://localhost:8080
 
