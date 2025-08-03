@@ -81,6 +81,9 @@ jobs:
             echo "③ GHCR 로그인"
             echo "${{ secrets.GHCR_PAT }}" | \
               docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "④ HTTP‑only Nginx 기동 (SSL 임시 없음)"
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml \
+              up -d nginx
 
             echo "④ 최초 SSL 발급 (없을 때만)"
             if [ ! -f "./certbot-etc/live/${{ vars.DOMAIN }}/fullchain.pem" ]; then
