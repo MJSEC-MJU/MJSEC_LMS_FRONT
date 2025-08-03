@@ -1209,6 +1209,51 @@ img {
 .card-content .fa-discord{
   color:rgb(88, 101, 242);
 }
+
+@media (max-width: 768px) {
+    .pre-footer {
+        height: auto;
+        min-height: 50vh;
+        padding: 2rem 0;
+        margin-top: 1rem;
+    }
+
+    #cards {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        width: 90%;
+    }
+
+    .social-card {
+        width: 100%;
+        max-width: 320px;
+        height: 280px;
+        flex: none;
+    }
+
+    .card-content {
+        gap: 12px;
+    }
+
+    .card-content > i {
+        font-size: 5em;
+    }
+
+    .card-content h2 {
+        font-size: 1.2rem;
+    }
+
+    .card-content p {
+        font-size: 0.9rem;
+    }
+
+    .card-content a {
+        width: 85%;
+        padding-block: 0.6rem;
+        font-size: 0.9rem;
+    }
+}
 /* #endregion */
 
 
@@ -1286,7 +1331,7 @@ footer{
 /* #region 화면 스크롤 애니메이션 추가 */
 .autoShow{
   animation: appearing both;
-  animation-timeline: view(80% 10%);
+  animation-timeline: view(50% 20%);
 }
 @keyframes appearing{
   from{
@@ -1550,11 +1595,35 @@ h1.header {
     .FAQ-container {
         flex-direction: column;
         align-items: center;
+        height: auto;
+        gap: 20px;
+        margin-top: 2rem;
     }
-    
+
     .FAQ-box {
         width: 90%;
-        max-width: 400px;
+        max-width: 350px;
+        padding: 15px 15px;
+    }
+
+    .FAQ-box h1 {
+        font-size: 1.1rem;
+    }
+
+    .FAQ-box .FAQ-des {
+        font-size: 0.9rem;
+        margin: 15px 0 0 0;
+    }
+
+    .FAQ-box .FAQ-button {
+        margin-top: 20px;
+    }
+
+    .FAQ-box label {
+        width: 120px;
+        height: 40px;
+        font-size: 0.8rem; 
     }
 }
+
 
