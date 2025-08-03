@@ -59,8 +59,8 @@ jobs:
 
             echo "① 코드 디렉터리 준비 / 최초 clone"
             if [ ! -d /srv/mjsec/.git ]; then
-              sudo mkdir -p /srv/mjsec
-              sudo chown $(whoami):$(whoami) /srv/mjsec
+              mkdir -p /srv/mjsec
+              chown $(whoami):$(whoami) /srv/mjsec
               git clone --branch main https://github.com/${{ github.repository }} /srv/mjsec
             fi
 
