@@ -1,11 +1,12 @@
 name: CD
+
 on:
   push:
     branches: ['main']
 
 permissions:
   contents: read
-  packages: write          # GHCR push 권한
+  packages: write
 
 jobs:
   deploy:
@@ -13,23 +14,22 @@ jobs:
     environment: production
 
     steps:
-    #####################################################################
-    # 0) checkout + buildx
-    #####################################################################
+    #───────────────────────────────────────────────────────────#
+    # 0)  코드를 체크아웃 + Buildx
+    #───────────────────────────────────────────────────────────#
     - uses: actions/checkout@v4
     - uses: docker/setup-buildx-action@v3
 
-    #####################################################################
-    # 1) 태그를 소문자로 생성
-    #####################################################################
+    #───────────────────────────────────────────────────────────#
+    # 1)  이미지 태그 (소문자)
+    #───────────────────────────────────────────────────────────#
     - name: Prepare image tag
       id: prep
-      run: |
-        echo "image_tag=ghcr.io/${GITHUB_REPOSITORY,,}:latest" >> "$GITHUB_OUTPUT"
+      run: echo "image_tag=ghcr.io/${GITHUB_REPOSITORY,,}:latest" >>"$GITHUB_OUTPUT"
 
-    #####################################################################
-    # 2) GHCR 로그인 + 이미지 Build & Push
-    #####################################################################
+    #───────────────────────────────────────────────────────────#
+    # 2)  GHCR 로그인 + Build & Push
+    #───────────────────────────────────────────────────────────#
     - name: Log in to ghcr.io
       uses: docker/login-action@v3
       with:
@@ -45,9 +45,9 @@ jobs:
         push:    true
         tags:    ${{ steps.prep.outputs.image_tag }}
 
-    #####################################################################
-    # 3) 서버 배포 (SSH)
-    #####################################################################
+    #───────────────────────────────────────────────────────────#
+    # 3)  원격 서버 배포
+    #───────────────────────────────────────────────────────────#
     - name: Deploy via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
@@ -57,65 +57,66 @@ jobs:
         key:        ${{ secrets.SSH_KEY }}
 
         script: |
-          set -e
+          set -euo pipefail
 
-          ###############################################################
-          # ① 코드 디렉터리 준비 / 최초 clone
-          ###############################################################
+          ######################################################
+          ## ①  코드 디렉터리 준비
+          ######################################################
           if [ ! -d /srv/mjsec/.git ]; then
-            mkdir -p /srv/mjsec
             git clone --branch main https://github.com/${{ github.repository }} /srv/mjsec
           fi
           cd /srv/mjsec
           git fetch origin main
           git reset --hard origin/main
 
-          ###############################################################
-          # ② .env 파일 생성 후 export  (Compose 에 변수 전달)
-          ###############################################################
-          cat > .env <<'EOF'
+          ######################################################
+          ## ②  .env 생성 + export  (Compose 전달용)
+          ######################################################
+          cat > .env <<EOF
           ORG=${{ vars.ORG }}
           REPO=${{ vars.REPO }}
           DOMAIN=${{ vars.DOMAIN }}
           EMAIL=${{ vars.EMAIL }}
           EOF
-          echo "------ .env ------"; cat .env; echo "-------------------"
-          set -o allexport; source .env; set +o allexport   # <─ export!
+          echo "--- .env ---"; cat .env; echo "--------------"
+          set -o allexport; . ./.env; set +o allexport
 
-          ###############################################################
-          # ③ GHCR 로그인 (서버측 Pull 용)
-          ###############################################################
+          ######################################################
+          ## ③  GHCR 로그인 (서버 pull)
+          ######################################################
           if [ -n "${{ secrets.GHCR_PAT }}" ]; then
-            echo "${{ secrets.GHCR_PAT }}" | \
-              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "${{ secrets.GHCR_PAT }}" \
+              | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           fi
 
-          ###############################################################
-          # ④ HTTP‑only Nginx 기동 (80포트 개방)
-          ###############################################################
+          ######################################################
+          ## ④  HTTP‑only Nginx 기동 (BOOTSTRAP=http)
+          ######################################################
+          export BOOTSTRAP=http
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml up -d nginx
 
-          ###############################################################
-          # ⑤ 최초 SSL 발급 (존재하면 건너뜀)
-          ###############################################################
+          ######################################################
+          ## ⑤  Certbot 최초 발급 (없을 때만)
+          ######################################################
           if [ ! -f "./certbot-etc/live/${DOMAIN}/fullchain.pem" ]; then
             chmod +x ./mjsec-frontend/docker/scripts/init-letsencrypt.sh
             ./mjsec-frontend/docker/scripts/init-letsencrypt.sh || {
-              echo "⚠️  SSL bootstrap failed"; exit 1; }
+              echo '❌ SSL bootstrap failed'; exit 1; }
           else
-            echo "SSL cert already present – skip bootstrap"
+            echo "✅ SSL cert already present – skip bootstrap"
           fi
 
-          ###############################################################
-          # ⑥ 전체 스택 재기동 (nginx + app + renew loop)
-          ###############################################################
+          ######################################################
+          ## ⑥  전체 스택 재기동 (BOOTSTRAP unset → SSL 템플릿)
+          ######################################################
+          unset BOOTSTRAP
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml pull
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
 
-          ###############################################################
-          # ⑦ 불필요 이미지 정리
-          ###############################################################
+          ######################################################
+          ## ⑦  디스크 청소
+          ######################################################
           docker image prune -f

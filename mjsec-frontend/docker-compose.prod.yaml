@@ -13,7 +13,7 @@ services:
       APP_UPSTREAM: app:80
     volumes:
       # 템플릿 파일만 마운트 ➜ /etc/nginx/templates/...
-      - ./docker/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./docker/nginx/default.${BOOTSTRAP:-ssl}.conf.template:/etc/nginx/templates/default.conf.template:ro
       # Certbot 인증서 경로
       - certbot-etc:/etc/letsencrypt
       - certbot-webroot:/var/www/certbot
