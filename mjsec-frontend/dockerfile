@@ -12,9 +12,9 @@ RUN npm run build                #  /app/dist 생성
 
 ######################## 2) Runtime stage ##############################
 FROM nginx:stable-alpine
-
+ARG ENV=prod
 # 2‑1. 커스텀 nginx 설정
-COPY docker/nginx/ /etc/nginx/conf.d/
+COPY docker/nginx/default-${ENV}.conf /etc/nginx/conf.d/default.conf
 
 # 2‑2. 정적 파일만 복사
 COPY --from=builder /app/dist /usr/share/nginx/html

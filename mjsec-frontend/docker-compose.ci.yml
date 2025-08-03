@@ -3,8 +3,13 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile         # 앞서 만든 multi‑stage 이미지
+      dockerfile: Dockerfile
+      args:
+        ENV: ci         # 앞서 만든 multi‑stage 이미지
     ports:
-      - "80:80"                                # 테스트 용으로 80만
-    environment:
-      - NODE_ENV=production
+      - "8080:80"                             
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost"]
+      interval: 5s
+      timeout: 2s
+      retries: 5

@@ -8,16 +8,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build image
-        run: docker build -t mjsec-ci -f mjsec-frontend/Dockerfile mjsec-frontend
-
-      - name: Run container & simple health‑check
+      # 1) docker compose build + up
+      - name: Compose up (build & run)
         run: |
           docker compose -f mjsec-frontend/docker-compose.ci.yml up -d
-          curl --retry 5 --retry-delay 2 --fail http://localhost | grep -qi "mjsec"
-          docker compose -f mjsec-frontend/docker-compose.ci.yml down
+          docker compose -f mjsec-frontend/docker-compose.ci.yml ps
 
+      # 2) 간단 Smoke‑Test (포트 8080)
+      - name: Smoke test
+        run: |
+          curl --retry 15 --retry-delay 2 --fail http://localhost:8080 | grep -qi "mjsec"
+
+      # 3) Clean‑up
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose -f mjsec-frontend/docker-compose.ci.yml down -v
