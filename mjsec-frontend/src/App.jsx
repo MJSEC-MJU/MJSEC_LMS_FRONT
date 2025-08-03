@@ -13,14 +13,29 @@ import Footer        from "./components/Footer";
 
 export default function App() {
   const faqRef = useRef(null);           // FAQ 스크롤 타깃S
+  const faqRef = useRef(null);           // FAQ 스크롤 타깃
+  const mainRef = useRef(null);          // 메인 스크롤 타깃
+  const introRef = useRef(null);         // 인트로 스크롤 타깃
+  const activityRef = useRef(null);      // 활동 스크롤 타깃
 
   return (
     <>
       <IntroSection />
-      <Navbar onFaqClick={() => faqRef.current?.scrollIntoView({ behavior:"smooth" })} />
-      <FirstPage />
-      <SecondPage />
-      <ThirdPage />
+      <Navbar 
+        onFaqClick={() => faqRef.current?.scrollIntoView({ behavior:"smooth" })}
+        onMainClick={() => mainRef.current?.scrollIntoView({ behavior:"smooth" })}
+        onIntroClick={() => introRef.current?.scrollIntoView({ behavior:"smooth" })}
+        onActivityClick={() => activityRef.current?.scrollIntoView({ behavior:"smooth" })}
+      />
+      <div ref={mainRef}>
+        <FirstPage />
+      </div>
+      <div ref={introRef}>
+        <SecondPage />
+      </div>
+      <div ref={activityRef}>
+        <ThirdPage />
+      </div>
       <Timeline />
       <StickyAlbum />
       <FaqSection ref={faqRef} />    

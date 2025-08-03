@@ -29,18 +29,7 @@ export default function ThirdPage() {
       });
     });
 
-    /* 모바일 경고 */
-    if (window.innerWidth <= 768) {
-      alert("이 웹사이트는 데스크탑 환경에 최적화되어 있습니다.\nPC에서 접속해 주세요.");
-    }
 
-    /* “Study now!” 버튼 경고 */
-    slide.querySelectorAll(".content button").forEach(btn => {
-      btn.addEventListener("click", e => {
-        e.preventDefault();
-        alert("지금은 신청 기간이 아닙니다!");
-      });
-    });
 
     /* 클린업 */
     return () => {
@@ -61,7 +50,6 @@ export default function ThirdPage() {
                 소프트웨어의 내부 동작 원리를 분석해 문제를 파악하거나 보안 취약점을
                 찾고, 복구하거나 대응하기 위한 목적입니다.
               </div>
-              <button>Study&nbsp;now!</button>
             </div>
           </div>
 
@@ -75,7 +63,6 @@ export default function ThirdPage() {
                 웹사이트나 웹 서비스를 공격해 취약점을 찾아내고, 이를 통해 보안을
                 강화하거나 침해 시도를 탐지하는 목적입니다.
               </div>
-              <button>Study&nbsp;now!</button>
             </div>
           </div>
 
@@ -87,19 +74,17 @@ export default function ThirdPage() {
                 시스템 취약점을 이용해 권한을 획득하거나 제어권을 얻어 보안 약점을
                 실질적으로 증명하는 데 목적이 있습니다.
               </div>
-              <button>Study&nbsp;now!</button>
             </div>
           </div>
 
           {/* 4) Digital Forensic */}
           <div className="item" style={{ backgroundImage: `url(${picForensic})` }}>
             <div className="content">
-              <div className="name">Digital&nbsp;Forensic</div>
+              <div className="name">Digital&nbsp;<br></br>Forensic</div>
               <div className="des">
                 해킹이나 사고 발생 후 디지털 증거를 분석해 경위와 원인을 밝혀 법적
                 증거나 보안 강화에 활용하는 것이 목적입니다.
               </div>
-              <button>Study&nbsp;now!</button>
             </div>
           </div>
 
@@ -111,7 +96,6 @@ export default function ThirdPage() {
                 앱 해킹은 모바일 앱의 내부 동작 원리를 분석해 보안 취약점을 찾아내고,
                 이를 악용하거나 방어하기 위한 목적입니다.
               </div>
-              <button>Study&nbsp;now!</button>
             </div>
           </div>
         </div>
