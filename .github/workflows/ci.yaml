@@ -20,12 +20,13 @@ jobs:
           docker compose -f mjsec-frontend/docker-compose.ci.yml ps
 
       # 2) 간단 Smoke‑Test (포트 8080)
-      - name: Smoke test
+      - name: Smoke test (HTTP 200)
         run: |
-          curl --retry 15 --retry-delay 2 --fail http://localhost:8080 | grep -qi "mjsec"
+          # 잠깐 healthcheck 대기
+          docker compose -f mjsec-frontend/docker-compose.ci.yml wait app
+          # HEAD 요청으로 200 코드만 확인
+          curl --fail --silent --head http://localhost:8080
 
-      # 3) Clean‑up
       - name: Tear down
         if: always()
-        run: |
-          docker compose -f mjsec-frontend/docker-compose.ci.yml down -v
+        run: docker compose -f mjsec-frontend/docker-compose.ci.yml down -v
