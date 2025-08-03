@@ -15,7 +15,7 @@ RUN npm run build
 # 2) Spin up nginx for static hosting
 FROM nginx:stable-alpine
 # replace default nginx.conf if you have one:
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # copy built output to nginx html dir
 COPY --from=builder /app/dist /usr/share/nginx/html
