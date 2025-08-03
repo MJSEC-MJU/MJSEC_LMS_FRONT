@@ -2,7 +2,7 @@ version: "3.9"
 services:
   app:
     build:
-      context: mjsec-frontend
+      context: .
       dockerfile: Dockerfile
       args:
         ENV: ci         # 앞서 만든 multi‑stage 이미지
