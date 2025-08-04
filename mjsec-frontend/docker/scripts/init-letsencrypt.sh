@@ -1,33 +1,52 @@
 #!/usr/bin/env bash
+# ------------------------------------------------------------------
+#  Let’s Encrypt 1‑shot (webroot) bootstrap 스크립트
+#  - 실행 전 .env(ORG/REPO/DOMAIN/EMAIL) 로드
+#  - 이미 인증서가 있으면 아무 것도 하지 않음
+# ------------------------------------------------------------------
 set -euo pipefail
-[[ -f .env ]] && { set -a; . ./.env; set +a; }
 
-DOMAIN="${1:-${DOMAIN:-}}"; EMAIL="${2:-${EMAIL:-}}"
-[[ -z "$DOMAIN" ]] && { echo "DOMAIN 필요"; exit 1; }
+# 0) .env 로드 ────────────────────────────────────────────────────
+if [[ -f .env ]]; then
+  set -a                # export 자동
+  . ./.env
+  set +a
+fi
 
+DOMAIN="${1:-${DOMAIN:-}}"
+EMAIL="${2:-${EMAIL:-}}"
+[[ -z "${DOMAIN}" ]] && { echo "❌ DOMAIN 변수가 없습니다"; exit 1; }
+
+# 1) 공통 옵션 구성 ──────────────────────────────────────────────
 EMAIL_OPT="--register-unsafely-without-email --no-eff-email"
-[[ -n "${EMAIL:-}" ]] && EMAIL_OPT="--email $EMAIL --no-eff-email"
+[[ -n "${EMAIL:-}" ]] && EMAIL_OPT="--email ${EMAIL} --no-eff-email"
 
-echo "▶︎ DOMAIN = $DOMAIN"
+echo "▶︎ DOMAIN = ${DOMAIN}"
 echo "▶︎ EMAIL  = ${EMAIL:-<none>}"
 
 COMPOSE="docker compose --env-file .env -f mjsec-frontend/docker-compose.prod.yaml"
 
-# 이미 cert 존재하면 스킵
+# 2) 기존 인증서 존재하면 종료 ──────────────────────────────────
 if $COMPOSE run --rm --entrypoint sh certbot -c \
-   '[ -f /etc/letsencrypt/live/'"$DOMAIN"'/fullchain.pem ]'; then
-   echo "✅ cert already present – skip"; exit 0
+   "[ -f /etc/letsencrypt/live/${DOMAIN}/fullchain.pem ]"; then
+  echo "✅ 인증서가 이미 존재합니다. 스킵."
+  exit 0
 fi
 
-# 1) webroot 방식으로 **비대화형** 최초 발급
-$COMPOSE run --rm --entrypoint certbot certbot certonly \
-      --non‑interactive --keep-until-expiring --agree-tos \
-      $EMAIL_OPT -w /var/www/certbot -d "$DOMAIN"
+# 3) 최초 발급 (비대화형) ─────────────────────────────────────────
+$COMPOSE run --rm \
+  --entrypoint certbot certbot \
+  certonly --non-interactive --keep-until-expiring \
+  --agree-tos $EMAIL_OPT \
+  --webroot -w /var/www/certbot \
+  -d "${DOMAIN}"
 
-# 2) 누락된 recommend‑config 파일 복사
+# 4) 권장 SSL 설정 파일이 없으면 복사 ────────────────────────────
 $COMPOSE run --rm --entrypoint sh certbot -c "
-  cp /usr/share/certbot/options-ssl-nginx.conf      /etc/letsencrypt/ 2>/dev/null || true
-  cp /usr/share/certbot/ssl-dhparams.pem            /etc/letsencrypt/ 2>/dev/null || true
+  for f in options-ssl-nginx.conf ssl-dhparams.pem; do
+    src=\"/usr/share/certbot/\$f\"; dst=\"/etc/letsencrypt/\$f\"
+    [ -f \"\$dst\" ] || { cp \"\$src\" \"\$dst\" 2>/dev/null || true; }
+  done
 "
 
-echo "🎉  New certificate + recommend‑config generated"
+echo "🎉  New certificate issued & recommended config prepared"
