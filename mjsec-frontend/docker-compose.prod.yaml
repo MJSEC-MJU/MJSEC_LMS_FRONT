@@ -1,3 +1,6 @@
+# docker-compose.prod.yaml
+version: '3.8'
+
 services:
   app:
     image: ghcr.io/${ORG}/${REPO}:latest
@@ -8,38 +11,39 @@ services:
     restart: always
     depends_on:
       - app
-    environment:               
+    environment:
       DOMAIN: ${DOMAIN}
       APP_UPSTREAM: app:80
     volumes:
-      # 템플릿 파일만 마운트 ➜ /etc/nginx/templates/...
+      # 템플릿(.conf.template)만 마운트
       - ./docker/nginx/default.${BOOTSTRAP:-ssl}.conf.template:/etc/nginx/templates/default.conf.template:ro
-      # Certbot 인증서 경로
-      - /dev/null:/etc/nginx/conf.d/default.conf:ro
+      # Certbot 볼륨
       - certbot-etc:/etc/letsencrypt
       - certbot-webroot:/var/www/certbot
     ports:
       - "80:80"
       - "443:443"
+    entrypoint: ["sh", "-c"]
+    command: |
+      # 1) 템플릿 치환
+      envsubst '${DOMAIN} ${APP_UPSTREAM}' \
+        < /etc/nginx/templates/default.conf.template \
+        > /etc/nginx/conf.d/default.conf
+
+      # 2) nginx 실행
+      exec nginx -g 'daemon off;'
 
   certbot:
     image: certbot/certbot:latest
-    # 1) entrypoint 를 ["sh","-c"] 로 바꿔서, 이후 command 를 쉘 스크립트로 실행하게 함
     entrypoint: ["sh", "-c"]
-    # 2) command 블록에 멀티라인 스크립트를 넣어 `&&` 등을 안전하게 처리
     command: |
       trap exit TERM
-
       while :
       do
-        # 먼저 12시간 대기
         sleep 12h & wait $${!}
-
-        # 갱신 시도 및 nginx 재시작
         certbot renew --webroot -w /var/www/certbot --quiet \
           && nginx -s reload
       done
-
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-webroot:/var/www/certbot
