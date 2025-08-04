@@ -63,7 +63,7 @@ jobs:
           ## ①  코드 디렉터리 준비
           ######################################################
           if [ ! -d /srv/mjsec/.git ]; then
-            git clone --branch main https://github.com/${{ github.repository }} /srv/mjsec
+            git clone --branch main https://github.com/MJSEC-MJU/MJSEC_LMS_FRONT /srv/mjsec
           fi
           cd /srv/mjsec
           git fetch origin main
@@ -73,45 +73,58 @@ jobs:
           ## ②  .env 생성 + export  (Compose 전달용)
           ######################################################
           cat > .env <<EOF
-          ORG=${{ vars.ORG }}
-          REPO=${{ vars.REPO }}
-          DOMAIN=${{ vars.DOMAIN }}
-          EMAIL=${{ vars.EMAIL }}
+          ORG=mjsec-mju
+          REPO=mjsec_lms_front
+          DOMAIN=mjsec.kr
+          EMAIL=***@gmail.com
+
+          # nginx upstream host:port
+          APP_UPSTREAM=app:80
           EOF
-          echo "--- .env ---"; cat .env; echo "--------------"
-          set -o allexport; . ./.env; set +o allexport
+
+          echo "--- .env ---"
+          cat .env
+          echo "--------------"
+
+          # 모든 키/값 자동 export
+          set -o allexport
+          . ./.env
+          set +o allexport
 
           ######################################################
           ## ③  GHCR 로그인 (서버 pull)
           ######################################################
-          if [ -n "${{ secrets.GHCR_PAT }}" ]; then
-            echo "${{ secrets.GHCR_PAT }}" \
-              | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          if [ -n "***" ]; then
+            echo "***" \
+              | docker login ghcr.io -u jongcoding --password-stdin
           fi
 
           ##############################
-          # ① HTTP‑only 기동
+          # ④  HTTP-only nginx 기동 (부트스트랩 전용)
           ##############################
           export BOOTSTRAP=http
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml up -d nginx
+
+          ##############################
+          # ⑤  최초 또는 갱신 Certbot (HTTP-only 모드 유지)
+          ##############################
+          mjsec-frontend/docker/scripts/init-letsencrypt.sh
+
+          # 부트스트랩 완료 후 HTTP-only 모드 변수 해제
           unset BOOTSTRAP
 
           ##############################
-          # ② 최초 또는 갱신 Certbot
-          ##############################
-          mjsec-frontend/docker/scripts/init-letsencrypt.sh   # ← 패치된 버전
-
-          ##############################
-          # ③ 전체 스택 SSL 모드 재기동
+          # ⑥  전체 스택 SSL 모드 재기동
           ##############################
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml pull
+
           docker compose --env-file .env \
             -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
-
 
           ######################################################
           ## ⑦  디스크 청소
           ######################################################
           docker image prune -f
+
