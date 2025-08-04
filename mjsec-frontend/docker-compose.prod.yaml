@@ -24,10 +24,22 @@ services:
 
   certbot:
     image: certbot/certbot:latest
-    entrypoint: >
-      sh -c "trap exit TERM; while :; do sleep 12h & wait $${!};
-             certbot renew --webroot -w /var/www/certbot --quiet \
-             && nginx -s reload; done"
+    # 1) entrypoint 를 ["sh","-c"] 로 바꿔서, 이후 command 를 쉘 스크립트로 실행하게 함
+    entrypoint: ["sh", "-c"]
+    # 2) command 블록에 멀티라인 스크립트를 넣어 `&&` 등을 안전하게 처리
+    command: |
+      trap exit TERM
+
+      while :
+      do
+        # 먼저 12시간 대기
+        sleep 12h & wait $${!}
+
+        # 갱신 시도 및 nginx 재시작
+        certbot renew --webroot -w /var/www/certbot --quiet \
+          && nginx -s reload
+      done
+
     volumes:
       - certbot-etc:/etc/letsencrypt
       - certbot-webroot:/var/www/certbot
