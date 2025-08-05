@@ -109,9 +109,9 @@ jobs:
       # ── 2. HTTP‑only 템플릿 & Compose 업로드 ─────────────────────────────
       - name: Upload HTTP‑only Nginx template and compose
         run: |
-          scp -P ${{ secrets.SSH_PORT }} nginx/default.http.conf.template \
+          scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker/nginx/default.http.conf.template \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
-          scp -P ${{ secrets.SSH_PORT }} docker-compose.prod.yaml \
+          scp -P ${{ secrets.SSH_PORT }} mjsec-frontend//docker-compose.prod.yaml \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/"
 
       # ── 3. HTTP‑only 스택 기동 ───────────────────────────────────────────
@@ -181,7 +181,7 @@ jobs:
       # ── 7. HTTPS 템플릿 업로드 ───────────────────────────────────────────
       - name: Upload HTTPS Nginx template
         run: |
-          scp -P ${{ secrets.SSH_PORT }} nginx/default.https.conf.template \
+          scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker/nginx/default.https.conf.template \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
 
       # ── 8. conf 재생성 & nginx reload ───────────────────────────────────
