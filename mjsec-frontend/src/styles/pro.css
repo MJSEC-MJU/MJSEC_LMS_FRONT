@@ -761,6 +761,10 @@ a {
     transition: 0.3s;
     background: rgba(0,0,0,0.5);
     color: white;
+    display:flex;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
 }
 
 .button button:hover{
@@ -811,6 +815,7 @@ a {
   border-radius: 10%;
   left: 20px;
   bottom: 20px;
+  position:absolute;
   }
   .slide .item:nth-child(3){
   left:30%
