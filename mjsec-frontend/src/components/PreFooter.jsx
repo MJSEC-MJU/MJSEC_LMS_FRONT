@@ -16,7 +16,11 @@ export default function PreFooter() {
       });
     };
     container.addEventListener("mousemove", onMove);
-    return () => container.removeEventListener("mousemove", onMove);
+
+
+    return () => {
+      container.removeEventListener("mousemove", onMove);
+    };
   }, []);
 
   return (

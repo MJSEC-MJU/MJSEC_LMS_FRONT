@@ -9,8 +9,8 @@ export default function MainSection() {
     >
       <div className="banner">
         <div className="slogan">
-          <div className="slogan-text left">No Headache</div>
-          <div className="slogan-text right">No Hack</div>
+          <div className="slogan-text left scrollRight">No Headache</div>
+          <div className="slogan-text right scrollLeft">No Hack</div>
         </div>
         <div className="center-button">
           <button
