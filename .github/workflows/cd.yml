@@ -123,8 +123,8 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
             cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml down --remove-orphans || true &&
-            docker compose -f docker-compose.prod.yaml up -d nginx app
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml down --remove-orphans || true &&
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml up -d nginx app
           "
 
       # ── 4. HTTP 응답 대기 ───────────────────────────────────────────────
@@ -142,7 +142,7 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
             cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml run --rm certbot \
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml run --rm certbot \
               certonly --webroot -w /var/www/certbot \
               --non-interactive --keep-until-expiring \
               --email '${{ env.EMAIL }}' -d '${{ env.DOMAIN }}' \
@@ -154,7 +154,7 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
             cd '${{ env.REMOTE_DIR }}'
-            docker compose -f docker-compose.prod.yaml run --rm --entrypoint "" certbot sh -euxc '
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml run --rm --entrypoint "" certbot sh -euxc '
               OPTIONS=/etc/letsencrypt/options-ssl-nginx.conf
               DHPARAM=/etc/letsencrypt/ssl-dhparams.pem
               mkdir -p /etc/letsencrypt
@@ -193,7 +193,7 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
             cd '${{ env.REMOTE_DIR }}'
-            docker compose -f docker-compose.prod.yaml exec nginx sh -c '
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml exec nginx sh -c '
               envsubst '\''$DOMAIN'\'' < /etc/nginx/templates/default.conf.template \
                 > /etc/nginx/conf.d/default.conf && nginx -s reload
             '
@@ -204,8 +204,8 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
             cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml pull &&
-            docker compose -f docker-compose.prod.yaml up -d --remove-orphans
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml pull &&
+            docker compose -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
           "
 
       # ── 10. HTTPS 검증 ──────────────────────────────────────────────────

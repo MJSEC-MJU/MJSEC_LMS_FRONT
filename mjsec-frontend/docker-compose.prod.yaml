@@ -5,7 +5,7 @@ services:
     environment:
       FLASK_ENV: production
     expose:
-      - "5000"
+      - "80"
 
   nginx:
     container_name: nginx
