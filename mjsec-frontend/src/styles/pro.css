@@ -814,7 +814,7 @@ a {
 .button{
     width: 100%;
     text-align: center;
-    position: absolute;
+    position: relative;
     bottom: 1.2vw;
 }
 
@@ -824,7 +824,7 @@ a {
     border-radius: 50%;
     cursor: pointer;
     margin: 0 5px;
-    border: 1px solid #ffffff;
+    border: 1px solid #024fb4;
     transition: 0.3s;
     background: rgba(0,0,0,0.5);
     color: white;
