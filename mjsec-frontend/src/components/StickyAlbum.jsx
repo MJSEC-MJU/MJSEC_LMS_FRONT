@@ -75,11 +75,11 @@ export default function StickyAlbum() {
       <div className="sticky-header"><h1>MJSEC&nbsp;ALBUM</h1></div>
 
       {/* 카드 5개 */}
-      <div className="card"><div className="card-img"><img src="https://cdn.pixabay.com/photo/2024/06/21/10/50/ai-generated-8844135_960_720.png"/></div></div>
-      <div className="card"><div className="card-img"><img src="https://cdn.pixabay.com/photo/2024/06/21/10/50/ai-generated-8844136_1280.png"/></div></div>
-      <div className="card"><div className="card-img"><img src="" alt="" /></div></div>
-      <div className="card"><div className="card-img"><img src="" alt="" /></div></div>
-      <div className="card"><div className="card-img"><img src="" alt="" /></div></div>
+      <div className="card"><div className="card-img"><img src="/album-source/pic1.png"/></div></div>
+      <div className="card"><div className="card-img"><img src="/album-source/pic2.png"/></div></div>
+      <div className="card"><div className="card-img"><img src="/album-source/pic3.jpg" alt="" /></div></div>
+      <div className="card"><div className="card-img"><img src="/album-source/pic4.jpg" alt="" /></div></div>
+      <div className="card"><div className="card-img"><img src="/album-source/pic5.jpg" alt="" /></div></div>
     </section>
   );
 }
