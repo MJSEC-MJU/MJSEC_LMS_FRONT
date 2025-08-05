@@ -207,7 +207,13 @@ jobs:
             docker compose -f docker-compose.prod.yaml pull &&
             docker compose -f docker-compose.prod.yaml up -d --remove-orphans
           "
-
+      - name: Reload nginx proxy
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
+            cd '${{ env.REMOTE_DIR }}' &&
+            docker compose -f docker-compose.prod.yaml exec nginx nginx -s reload
+          "
+          
       # ── 10. HTTPS 검증 ──────────────────────────────────────────────────
       - name: Verify HTTPS
         run: |
