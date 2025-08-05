@@ -1,130 +1,238 @@
-name: CD
+name: CD – Build, Push & Deploy to Production
 
 on:
   push:
-    branches: ['main']
+    branches: [ main ]
+    # tags: [ 'v*.*.*' ]  # 릴리즈 태그 푸시 시 자동 배포가 필요하면 활성화
 
+###############################################################################
+# 리포지토리·레지스트리 공용 환경변수
+###############################################################################
 permissions:
   contents: read
   packages: write
 
+env:
+  REMOTE_DIR: /srv/mjsec          # 원격 서버 앱 루트
+  ORG:        ${{ vars.ORG }}     # 예: mjsec‑org
+  REPO:       ${{ vars.REPO }}    # 예: mjsec‑backend
+  DOMAIN:     ${{ vars.DOMAIN }}  # 예: mjsec.example.com
+  EMAIL:      ${{ vars.EMAIL }}   # Certbot 발급용 이메일
+
+###############################################################################
+# 1) Build & Push (GHCR)
+###############################################################################
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
-    environment: production
+
+    outputs:
+      image-tag:    ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
 
     steps:
-    #───────────────────────────────────────────────────────────#
-    # 0)  코드를 체크아웃 + Buildx
-    #───────────────────────────────────────────────────────────#
-    - uses: actions/checkout@v4
-    - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
 
-    #───────────────────────────────────────────────────────────#
-    # 1)  이미지 태그 (소문자)
-    #───────────────────────────────────────────────────────────#
-    - name: Prepare image tag
-      id: prep
-      run: echo "image_tag=ghcr.io/${GITHUB_REPOSITORY,,}:latest" >>"$GITHUB_OUTPUT"
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    #───────────────────────────────────────────────────────────#
-    # 2)  GHCR 로그인 + Build & Push
-    #───────────────────────────────────────────────────────────#
-    - name: Log in to ghcr.io
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}   # ghcr.io/owner/repo
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-    - name: Build & push frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./mjsec-frontend
-        file:    ./mjsec-frontend/Dockerfile
-        push:    true
-        tags:    ${{ steps.prep.outputs.image_tag }}
+      - name: Build & push frontend image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./mjsec-frontend
+          file:    ./mjsec-frontend/Dockerfile
+          push:    true
+          tags:    ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
 
-    #───────────────────────────────────────────────────────────#
-    # 3)  원격 서버 배포
-    #───────────────────────────────────────────────────────────#
-    - name: Deploy via SSH
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host:       ${{ secrets.HOST }}
-        port:       ${{ secrets.SSH_PORT }}
-        username:   ${{ secrets.USER }}
-        key:        ${{ secrets.SSH_KEY }}
+###############################################################################
+# 2) Deploy (SSH + Docker Compose)
+###############################################################################
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
 
-        script: |
-          set -euo pipefail
+    steps:
+      # ── 0. SSH 준비 ──────────────────────────────────────────────────────
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
 
-          ######################################################
-          ## ①  코드 디렉터리 준비
-          ######################################################
-          if [ ! -d /srv/mjsec/.git ]; then
-            git clone --branch main https://github.com/MJSEC-MJU/MJSEC_LMS_FRONT /srv/mjsec
-          fi
-          cd /srv/mjsec
-          git fetch origin main
-          git reset --hard origin/main
+      - name: Add host key
+        run: |
+          ssh-keyscan -H -p ${{ secrets.SSH_PORT }} ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
-          ######################################################
-          ## ②  .env 생성 + export  (Compose 전달용)
-          ######################################################
-          cat > .env <<EOF
-          ORG=mjsec-mju
-          REPO=mjsec_lms_front
-          DOMAIN=mjsec.kr
-          EMAIL=***@gmail.com
+      - name: Test SSH
+        run: ssh -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "echo OK"
 
-          # nginx upstream host:port
-          APP_UPSTREAM=app:80
+      # ── 1. 디렉터리 & .env ──────────────────────────────────────────────
+      - name: Prepare remote directory & .env
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
+            mkdir -p "${{ env.REMOTE_DIR }}"/{nginx,certbot/{config,www,logs}}
+            cat > "${{ env.REMOTE_DIR }}/.env" <<EOT
+            ORG=${{ env.ORG }}
+            REPO=${{ env.REPO }}
+            DOMAIN=${{ env.DOMAIN }}
+            EMAIL=${{ env.EMAIL }}
+            EOT
           EOF
 
-          echo "--- .env ---"
-          cat .env
-          echo "--------------"
+      # ── 1‑b. GHCR 로그인(서버 pull 용) ────────────────────────────────────
+      - name: Log in to ghcr.io on remote host
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
+            if [ -n \"${{ secrets.GHCR_PAT }}\" ]; then
+              echo '${{ secrets.GHCR_PAT }}' \
+                | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            fi
+          "
 
-          # 모든 키/값 자동 export
-          set -o allexport
-          . ./.env
-          set +o allexport
+      # ── 2. HTTP‑only 템플릿 & Compose 업로드 ─────────────────────────────
+      - name: Upload HTTP‑only Nginx template and compose
+        run: |
+          scp -P ${{ secrets.SSH_PORT }} nginx/default.http.conf.template \
+            ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
+          scp -P ${{ secrets.SSH_PORT }} docker-compose.prod.yaml \
+            ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/"
 
-          ######################################################
-          ## ③  GHCR 로그인 (서버 pull)
-          ######################################################
-          if [ -n "***" ]; then
-            echo "***" \
-              | docker login ghcr.io -u jongcoding --password-stdin
-          fi
+      # ── 3. HTTP‑only 스택 기동 ───────────────────────────────────────────
+      - name: Start HTTP‑only stack
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
+            cd '${{ env.REMOTE_DIR }}' &&
+            docker compose -f docker-compose.prod.yaml down --remove-orphans || true &&
+            docker compose -f docker-compose.prod.yaml up -d nginx web
+          "
 
-          ##############################
-          # ④  HTTP-only nginx 기동 (부트스트랩 전용)
-          ##############################
-          export BOOTSTRAP=http
-          docker compose --env-file .env \
-            -f mjsec-frontend/docker-compose.prod.yaml up -d nginx
+      # ── 4. HTTP 응답 대기 ───────────────────────────────────────────────
+      - name: Wait for HTTP
+        run: |
+          for i in {1..24}; do
+            if curl -sSf -m 5 http://${{ env.DOMAIN }} >/dev/null 2>&1; then
+              echo 'HTTP OK'; break
+            fi
+            echo "...waiting HTTP (${i}/24)"; sleep 5
+          done
 
-          ##############################
-          # ⑤  최초 또는 갱신 Certbot (HTTP-only 모드 유지)
-          ##############################
-          mjsec-frontend/docker/scripts/init-letsencrypt.sh
+      # ── 5. 인증서 발급/갱신 ──────────────────────────────────────────────
+      - name: Issue / Renew SSL
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
+            cd '${{ env.REMOTE_DIR }}' &&
+            docker compose -f docker-compose.prod.yaml run --rm certbot \
+              certonly --webroot -w /var/www/certbot \
+              --non-interactive --keep-until-expiring \
+              --email '${{ env.EMAIL }}' -d '${{ env.DOMAIN }}' \
+              --agree-tos --no-eff-email --rsa-key-size 4096
+          "
 
-          # 부트스트랩 완료 후 HTTP-only 모드 변수 해제
-          unset BOOTSTRAP
+      # ── 6. SSL helper 파일 확보 ─────────────────────────────────────────
+      - name: Provide SSL helper files for nginx
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
+            cd '${{ env.REMOTE_DIR }}'
+            docker compose -f docker-compose.prod.yaml run --rm --entrypoint "" certbot sh -euxc '
+              OPTIONS=/etc/letsencrypt/options-ssl-nginx.conf
+              DHPARAM=/etc/letsencrypt/ssl-dhparams.pem
+              mkdir -p /etc/letsencrypt
 
-          ##############################
-          # ⑥  전체 스택 SSL 모드 재기동
-          ##############################
-          docker compose --env-file .env \
-            -f mjsec-frontend/docker-compose.prod.yaml pull
+              # options‑ssl‑nginx.conf 확보
+              if [ ! -f "$OPTIONS" ]; then
+                SRC=$(find /usr /opt -maxdepth 7 -type f -name options-ssl-nginx.conf | head -n1 || true)
+                if [ -n "$SRC" ]; then cp "$SRC" "$OPTIONS"
+                elif command -v curl >/dev/null; then
+                  curl -fsSL https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o "$OPTIONS"
+                fi
+              fi
+              # 최소 TLS 설정 (fallback)
+              if [ ! -s "$OPTIONS" ]; then
+                printf "%s\n" \
+                  "ssl_session_cache   shared:SSL:10m;" \
+                  "ssl_session_timeout 1h;" \
+                  "ssl_prefer_server_ciphers on;" \
+                  "ssl_protocols TLSv1.2 TLSv1.3;" \
+                  "ssl_ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH;" \
+                  > "$OPTIONS"
+              fi
+              # Diffie‑Hellman 파라미터
+              if [ ! -f "$DHPARAM" ]; then openssl dhparam -out "$DHPARAM" 2048; fi
+            '
+          EOF
 
-          docker compose --env-file .env \
-            -f mjsec-frontend/docker-compose.prod.yaml up -d --remove-orphans
+      # ── 7. HTTPS 템플릿 업로드 ───────────────────────────────────────────
+      - name: Upload HTTPS Nginx template
+        run: |
+          scp -P ${{ secrets.SSH_PORT }} nginx/default.https.conf.template \
+            ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
 
-          ######################################################
-          ## ⑦  디스크 청소
-          ######################################################
-          docker image prune -f
+      # ── 8. conf 재생성 & nginx reload ───────────────────────────────────
+      - name: Apply HTTPS config & reload nginx
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
+            cd '${{ env.REMOTE_DIR }}'
+            docker compose -f docker-compose.prod.yaml exec nginx sh -c '
+              envsubst '\''$DOMAIN'\'' < /etc/nginx/templates/default.conf.template \
+                > /etc/nginx/conf.d/default.conf && nginx -s reload
+            '
+          EOF
 
+      # ── 9. 최신 이미지 pull & 전체 스택 ─────────────────────────────────
+      - name: Deploy latest stack
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
+            cd '${{ env.REMOTE_DIR }}' &&
+            docker compose -f docker-compose.prod.yaml pull &&
+            docker compose -f docker-compose.prod.yaml up -d --remove-orphans
+          "
+
+      # ── 10. HTTPS 검증 ──────────────────────────────────────────────────
+      - name: Verify HTTPS
+        run: |
+          for i in {1..12}; do
+            if curl -sSf -m 5 https://${{ env.DOMAIN }} >/dev/null 2>&1; then
+              echo 'HTTPS OK'; break
+            fi
+            echo "...waiting HTTPS (${i}/12)"; sleep 10
+          done
+
+      # ── 11. 오래된 이미지 정리 ──────────────────────────────────────────
+      - name: Prune images
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} \
+            "docker image prune -f --filter 'until=24h' || true"
+
+###############################################################################
+# 3) 알림 (콘솔)
+###############################################################################
+  notify:
+    needs: [ build-and-push, deploy ]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Success notice
+        if: success()
+        run: echo "✅  Deployed to ${{ env.DOMAIN }}"
+
+      - name: Failure notice
+        if: failure()
+        run: echo "❌  Deployment to ${{ env.DOMAIN }} failed"

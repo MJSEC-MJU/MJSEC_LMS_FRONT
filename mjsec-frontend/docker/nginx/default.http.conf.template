@@ -1,10 +1,20 @@
+# HTTP only – issue/renew certificates
 server {
     listen 80;
     server_name ${DOMAIN};
 
+    # Let’s Encrypt web‑root
     location ^~ /.well-known/acme-challenge/ {
-        alias /var/www/certbot/.well-known/acme-challenge/;
-        try_files $uri =404;
+        root /var/www/certbot;
+        allow all;
     }
-    location / { return 200 'ACME bootstrap'; }
+
+    # 임시로 Flask 바로 노출
+    location / {
+        proxy_pass http://app:5000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
