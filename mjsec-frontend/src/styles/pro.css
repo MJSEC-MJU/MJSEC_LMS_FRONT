@@ -876,18 +876,10 @@ a {
     bottom: 5vh;
   }
   .button button{
-<<<<<<< HEAD
   border-radius: 10%;
   left: 20px;
   bottom: 20px;
   position:absolute;
-=======
-  border-radius: 50%;
-  bottom: 10px;
-  font-size:1.3rem;
-  width: 3rem;
-  height: 3rem;
->>>>>>> 7b0fc584362f7458314cb85e4bb440c679da7b93
   }
   .slide .item:nth-child(3){
   left:10%;
@@ -1565,7 +1557,7 @@ footer{
 
 .fadeup {
   animation: fadeup linear both;
-  animation-timeline: view(100% 20%)
+  animation-timeline: view(100% 20%);
 }
 @keyframes fadeup{
   from{
