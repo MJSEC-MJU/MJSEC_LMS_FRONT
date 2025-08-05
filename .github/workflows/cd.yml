@@ -73,7 +73,7 @@ jobs:
       # ── 0a. 코드 체크아웃 ─────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       # ── 0. SSH 준비 ──────────────────────────────────────────────────────
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -115,7 +115,7 @@ jobs:
         run: |
           scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker/nginx/default.http.conf.template \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
-          scp -P ${{ secrets.SSH_PORT }} mjsec-frontend//docker-compose.prod.yaml \
+          scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker-compose.prod.yaml \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/"
 
       # ── 3. HTTP‑only 스택 기동 ───────────────────────────────────────────
@@ -124,7 +124,7 @@ jobs:
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
             cd '${{ env.REMOTE_DIR }}' &&
             docker compose -f docker-compose.prod.yaml down --remove-orphans || true &&
-            docker compose -f docker-compose.prod.yaml up -d nginx web
+            docker compose -f docker-compose.prod.yaml up -d nginx app
           "
 
       # ── 4. HTTP 응답 대기 ───────────────────────────────────────────────
