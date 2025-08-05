@@ -108,22 +108,22 @@ export default function SecondPage() {
   }, []);
 
   return (
-    <section className="second-page" style={{ overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>
-      <div className="second-page-bg" style={{ overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>
+    <section className="second-page">
+      <div className="second-page-bg">
 
         <div className="mac-terminal transup">
           <div className="term-head"><span className="traffic red"/><span className="traffic yellow"/><span className="traffic green"/></div>
-          <pre id="term-text1" ref={term1} style={{ overflowX: 'hidden', wordWrap: 'break-word', overflowWrap: 'break-word' }}/>
+          <pre id="term-text1" ref={term1}/>
         </div>
 
         <div className="mac-terminal2 transup">
           <div className="term-head"><span className="traffic red"/><span className="traffic yellow"/><span className="traffic green"/></div>
-          <pre id="term-text2" ref={term2} style={{ overflowX: 'hidden', wordWrap: 'break-word', overflowWrap: 'break-word' }}/>
+          <pre id="term-text2" ref={term2}/>
         </div>
 
         <div className="mac-terminal3 transup">
           <div className="term-head"><span className="traffic red"/><span className="traffic yellow"/><span className="traffic green"/></div>
-          <pre id="term-text3" ref={term3} style={{ overflowX: 'hidden', wordWrap: 'break-word', overflowWrap: 'break-word' }}/>
+          <pre id="term-text3" ref={term3}/>
         </div>
 
       </div>
