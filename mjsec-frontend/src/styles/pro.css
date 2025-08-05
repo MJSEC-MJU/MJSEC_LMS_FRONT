@@ -821,11 +821,10 @@ a {
 .button button{
     width: 30px;
     height: 30px;
-    border: none;
     border-radius: 50%;
     cursor: pointer;
     margin: 0 5px;
-    border: 1px solid #0206ff;
+    border: 1px solid #ffffff;
     transition: 0.3s;
     background: rgba(0,0,0,0.5);
     color: white;
@@ -833,6 +832,9 @@ a {
     text-align: center;
     align-items: center;
     justify-content: center;
+    flex-direction: row;
+    left:50%;
+    transform: translateX(-50%);
 }
 
 .button button:hover{
