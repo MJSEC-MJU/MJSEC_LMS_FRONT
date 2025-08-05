@@ -39,7 +39,7 @@ services:
       - --non-interactive
       - --agree-tos
       - --email
-      - "${EMAIL}"
+      - "${LETSENCRYPT_EMAIL}"
       - -d
       - "${DOMAIN}"
     volumes:
