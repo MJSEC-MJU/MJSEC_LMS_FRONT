@@ -828,13 +828,6 @@ a {
     transition: 0.3s;
     background: rgba(0,0,0,0.5);
     color: white;
-    display:flex;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-    flex-direction: row;
-    left:50%;
-    transform: translateX(-50%);
 }
 
 .button button:hover{
