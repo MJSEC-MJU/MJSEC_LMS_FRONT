@@ -1,4 +1,5 @@
-import bgMain from "../assets/1rd-pics/bg.jpg";   
+import React from "react";
+import bgMain from "../assets/1rd-pics/bg.jpg";
 
 export default function MainSection() {
   return (
@@ -15,7 +16,10 @@ export default function MainSection() {
         <div className="center-button">
           <button
             className="join-btn"
-            onClick={() => alert("지금은 모집 기간이 아닙니다!")}
+            onClick={() => {
+              // 외부 링크로 이동
+              window.location.href = "https://linktr.ee/mjsec_welcome";
+            }}
           >
             JOIN&nbsp;US
           </button>
