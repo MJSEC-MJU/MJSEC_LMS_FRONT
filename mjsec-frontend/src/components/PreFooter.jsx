@@ -46,7 +46,7 @@ export default function PreFooter() {
             <i className="fa-brands fa-github" />
             <h2>GitHub</h2>
             <p>@ MJSEC</p>
-            <a href="https://github.com/MJSEC-MJU/MJSEC_LMS_FRONT/tree/main" target="_blank" rel="noreferrer">
+            <a href="https://github.com/MJSEC-MJU" target="_blank" rel="noreferrer">
               <i className="fa-solid fa-link" />
               <span>Follow&nbsp;me</span>
             </a>

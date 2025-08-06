@@ -5,7 +5,7 @@ export default function MainSection() {
   return (
     <section
       className="first-page main-section"
-      /* CSS‑in‑JS 로 background-image 삽입 */
+
       style={{ backgroundImage: `linear-gradient(to right,#2e02ee75,#7069048e), url(${bgMain})` }}
     >
       <div className="banner">

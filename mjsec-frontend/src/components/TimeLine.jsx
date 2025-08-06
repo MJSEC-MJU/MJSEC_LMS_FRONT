@@ -64,7 +64,7 @@ export default function Timeline() {
             <div className="timeline_left fadeup"><div className="timeline-when">2025&nbsp;summer</div></div>
             <div className="timeline_centre"><div className="timeline_circle" /></div>
             <div className="timeline_right fadeup">
-              <div className="timeline-text">&bull;BoB(Best&nbsp;of&nbsp;Best)&nbsp;14기&nbsp;2명&nbsp;합격(보안제품개발,&nbsp;보안컨설팅)<br />&bull;랜섬웨어&nbsp;개발<br />&bull;한국디지털포렌식학회&nbsp;학술대회&nbsp;표창</div>
+              <div className="timeline-text">&bull;BoB(Best&nbsp;of&nbsp;Best)&nbsp;14기&nbsp;2명&nbsp;합격<br />&nbsp;(보안제품개발,&nbsp;보안컨설팅)<br />&bull;랜섬웨어&nbsp;개발<br />&bull;한국디지털포렌식학회&nbsp;학술대회&nbsp;표창</div>
               <div className="timeline-image"><img src="/timeline-source/pic4.jpg" width="480" /></div>
             </div>
           </div>
