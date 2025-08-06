@@ -34,7 +34,7 @@ export default function Timeline() {
             <div className="timeline_left fadeup"><div className="timeline-when">2024&nbsp;2nd&nbsp;sem</div></div>
             <div className="timeline_centre"><div className="timeline_circle" /></div>
             <div className="timeline_right fadeup">
-              <div className="timeline-text">&bull;동아리&nbsp;개설<br />&bull;HSPACE&nbsp;x&nbsp;MJSEC&nbsp;파트너십&nbsp;체결<br />&bull;명지대&nbsp;모의해킹대회&nbsp;개최<br />&bull;선박해커톤&nbsp;우승</div>
+              <div className="timeline-text">&bull;동아리&nbsp;개설<br />&bull;HSPACE&nbsp;x&nbsp;MJSEC&nbsp;파트너십&nbsp;체결<br />&bull;명지대&nbsp;모의해킹대회&nbsp;개최<br />&bull;2024&nbsp;사이버시큐리티&nbsp;해커톤대회&nbsp;최우승상</div>
               <div className="timeline-image"><img src="/timeline-source/pic1.jpg" width="480" /></div>
             </div>
           </div>
