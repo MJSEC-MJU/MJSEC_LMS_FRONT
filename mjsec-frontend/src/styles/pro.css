@@ -814,7 +814,7 @@ a {
 .button{
     width: 100%;
     text-align: center;
-    position: relative;
+    position: absolute;
     bottom: 1.2vw;
 }
 
