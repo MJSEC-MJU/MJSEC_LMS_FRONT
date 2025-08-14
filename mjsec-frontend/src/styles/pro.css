@@ -474,6 +474,9 @@ a {
   .slogan div{
     animation: none !important;
   }
+  .first-page {
+    background-attachment: scroll; /* 모바일에서 fixed 대신 scroll 적용 */
+  }
 }
 
 /* #endregion */
