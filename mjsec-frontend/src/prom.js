@@ -40,7 +40,9 @@ setTimeout(function() {
 		}
 	});
 
-	TweenMax.fromTo(".main-section", 1.5, {y: "100vh"}, {y: "0", ease: Power3.easeInOut,delay: 0.3 });
+	if (window.innerWidth > 768) { // 데스크탑 환경에서만 애니메이션 적용
+		TweenMax.fromTo(".main-section", 1.5, {y: "100vh"}, {y: "0", ease: Power3.easeInOut,delay: 0.3 });
+	}
 }, 6000);
 
 
