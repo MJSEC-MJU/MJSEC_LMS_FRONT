@@ -475,7 +475,7 @@ a {
     animation: none !important;
   }
   .first-page {
-    background-attachment: scroll; /* 모바일에서 fixed 대신 scroll 적용 */
+    background-attachment: scroll;
   }
 }
 
@@ -1677,7 +1677,7 @@ h1.header {
 .FAQ-box h1{
     text-align: center;
     margin:0;
-    font-size:1rem;
+    font-size:1.4rem;
     font-family: "Do Hyeon", sans-serif;
     font-weight:lighter;
     font-style: normal;
