@@ -880,12 +880,21 @@ a {
   .button{
     text-align: center;
     bottom: 5vh;
+    /* 모바일에서 버튼이 중앙에 위치하도록 수정 */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex; /* flexbox 사용 */
+    flex-direction: row; /* 가로로 정렬 */
+    justify-content: center; /* 중앙 정렬 */
+    align-items: center; /* 세로 중앙 정렬 */
+    width: 100%; /* 너비를 100%로 설정하여 중앙 정렬에 도움 */
   }
   .button button{
   border-radius: 10%;
-  left: 20px;
-  bottom: 20px;
-  position:absolute;
+  /* 모바일에서 버튼 위치 고정을 제거하고 flexbox에 맡김 */
+  /* left: 20px; */
+  /* bottom: 20px; */
+  /* position:absolute; */
   }
   .slide .item:nth-child(3){
   left:10%;
