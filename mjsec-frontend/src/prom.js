@@ -102,9 +102,34 @@ prev.addEventListener('click', function(){
 
 //모바일로 접속시 알림창
 if (window.innerWidth <= 768) {
-    alert("이 웹사이트는 데스크탑 환경에 최적화되어 있습니다.\nPC에서 접속해 주세요.");
+    
+    // 모바일에서 좌우 스크롤 완전 방지
+    document.addEventListener('touchmove', function(e) {
+        const touch = e.touches[0];
+        const startX = touch.clientX;
+        const startY = touch.clientY;
+        
+        // 터치 시작 위치 저장
+        if (!this.startX) {
+            this.startX = startX;
+            this.startY = startY;
+        }
+        
+        // 좌우 이동이 상하 이동보다 클 때 스크롤 방지
+        const deltaX = Math.abs(startX - this.startX);
+        const deltaY = Math.abs(startY - this.startY);
+        
+        if (deltaX > deltaY && deltaX > 10) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }, { passive: false });
+    
+    // 모바일에서 좌우 스크롤 방지 (CSS만으로는 완벽하지 않음)
+    document.body.style.overflowX = 'hidden';
+    document.documentElement.style.overflowX = 'hidden';
 }
-
 
 
 //study now 버튼 클릭시 알림창
