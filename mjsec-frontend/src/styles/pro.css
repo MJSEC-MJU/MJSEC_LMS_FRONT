@@ -5,11 +5,13 @@
   border: 0;
   box-sizing: border-box;
 }
+html {
+  overflow-x: hidden;
+}
 
 body{
   background-color: black;
   overflow-x:hidden;
-  scroll-snap-type: x mandatory;
 }
 
 /* #region nav바 */
