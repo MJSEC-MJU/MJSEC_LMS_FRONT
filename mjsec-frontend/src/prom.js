@@ -100,7 +100,6 @@ prev.addEventListener('click', function(){
 
 
 
-//모바일로 접속시 알림창
 if (window.innerWidth <= 768) {
     
     // 모바일에서 좌우 스크롤 완전 방지
@@ -134,6 +133,7 @@ if (window.innerWidth <= 768) {
     document.body.style.overflowX = '';
     document.documentElement.style.overflowX = '';
 }
+
 
 
 //study now 버튼 클릭시 알림창

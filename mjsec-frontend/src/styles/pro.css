@@ -1,9 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Karantina:wght@300;400;700&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
-
-html {
-  overflow-x: hidden; /* 좌우 스크롤 완전 방지 */
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -14,7 +9,7 @@ html {
 body{
   background-color: black;
   overflow-x:hidden;
-  /* scroll-snap-type: x mandatory; 제거하여 좌우 스크롤 방지 */
+  scroll-snap-type: x mandatory;
 }
 
 /* #region nav바 */
@@ -1842,84 +1837,6 @@ h1.header {
         width: 120px;
         height: 40px;
         font-size: 0.8rem; 
-    }
-}
-
-/* 데스크탑 환경에서 FAQ와 소셜미디어 박스가 제대로 보이도록 보장 */
-@media (min-width: 769px) {
-    .FAQ-container {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 100 !important;
-        position: relative !important;
-    }
-    
-    .FAQ-box {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 101 !important;
-        position: relative !important;
-        background-color: rgba(255, 255, 255, 0.12) !important;
-        color: #eee !important;
-        border: solid 1px rgb(117, 117, 117) !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
-    }
-    
-    .FAQ-box h1 {
-        color: #eee !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-    
-    .FAQ-box .FAQ-des {
-        color: #eee !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-    
-    .FAQ-box label {
-        background-color: #313131 !important;
-        color: #eee !important;
-        border: 1px solid #000 !important;
-    }
-    
-    .social-card {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 100 !important;
-        position: relative !important;
-        background-color: rgba(255, 255, 255, 0.12) !important;
-    }
-    
-    #cards {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        z-index: 100 !important;
-        position: relative !important;
-    }
-    
-    .card-content {
-        opacity: 1 !important;
-        visibility: visible !important;
-        z-index: 101 !important;
-        background-color: #131315 !important;
-    }
-    
-    .card-content > i {
-        color: rgb(255, 255, 255) !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-    
-    .card-content p {
-        color: rgba(255, 255, 255, 0.5) !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-    
-    .pre-footer {
-        z-index: 100 !important;
-        position: relative !important;
     }
 }
 
