@@ -5,9 +5,7 @@
   border: 0;
   box-sizing: border-box;
 }
-html {
-  overflow-x: hidden;
-}
+
 
 body{
   background-color: black;
