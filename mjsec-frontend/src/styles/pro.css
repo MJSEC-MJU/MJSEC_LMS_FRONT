@@ -1845,3 +1845,30 @@ h1.header {
     }
 }
 
+/* 데스크탑 환경에서 FAQ와 소셜미디어 박스가 제대로 보이도록 보장 */
+@media (min-width: 769px) {
+    .FAQ-container {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .FAQ-box {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .social-card {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    #cards {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+

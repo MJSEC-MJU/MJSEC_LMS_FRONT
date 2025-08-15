@@ -126,9 +126,13 @@ if (window.innerWidth <= 768) {
         }
     }, { passive: false });
     
-    // 모바일에서 좌우 스크롤 방지 (CSS만으로는 완벽하지 않음)
+    // 모바일에서만 좌우 스크롤 방지 (CSS만으로는 완벽하지 않음)
     document.body.style.overflowX = 'hidden';
     document.documentElement.style.overflowX = 'hidden';
+} else {
+    // 데스크탑에서는 기존 스타일 유지
+    document.body.style.overflowX = '';
+    document.documentElement.style.overflowX = '';
 }
 
 
