@@ -150,15 +150,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 안전한 fallback (한 줄 테스트 대신 if 사용)
-          WIKI_DOMAIN="${{ env.WIKI_DOMAIN:-}}"
+          # GitHub Actions 표현식에 기본값(:-) 쓰지 말고 bash에서 처리
+          WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"
           if [ -z "$WIKI_DOMAIN" ]; then
             WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"
           fi
+          echo "Using WIKI_DOMAIN=$WIKI_DOMAIN"
 
           # 원격 실행 (종료코드 캡처)
           set +e
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} 'bash -se' <<'EOF'
+          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.USER }}@${{ secrets.HOST }}" 'bash -se' <<'EOF'
             set -Eeuo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
@@ -174,21 +175,21 @@ jobs:
             for i in 1 2 3 4 5; do
               echo "Attempt $i/5: running certbot..."
               if docker compose -f docker-compose.prod.yaml run --rm certbot; then
-                echo "✅ Certbot success."
+                echo "Certbot success."
                 exit 0
               fi
               sleep $((i*15))
             done
 
-            echo "❌ Certbot failed after retries."
+            echo "Certbot failed after retries."
             exit 1
           EOF
           RC=$?
           set -e
 
-          # 원격 종료코드로 스텝 종료
           echo "Remote exit code: $RC"
           exit $RC
+
 
       # 6) SSL helper 파일 확보
       - name: Provide SSL helper files for nginx
