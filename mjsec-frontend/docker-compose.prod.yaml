@@ -63,28 +63,27 @@ services:
     restart: unless-stopped
 
   # ── 최초 인증서 발급 (메인 + 위키 서브도메인 동시)
-  certbot:
-    image: certbot/certbot
-    environment:
-      DOMAIN: ${DOMAIN}
-      EMAIL: ${EMAIL}
-      # 동일하게 Compose 기본값으로 wiki 서브도메인 기본값 제공
-      WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
-      # 선택: 기존 단일 인증서에 도메인 추가 시 --expand 사용
-      CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
-    volumes:
-      - ./certbot/config:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint:
-      - sh
-      - -exc
-      - |
-        exec certbot certonly --webroot \
-          --webroot-path=/var/www/certbot \
-          --non-interactive --agree-tos \
-          --email "${EMAIL}" \
-          -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
-    restart: "no"
+    certbot:
+      image: certbot/certbot
+      environment:
+        DOMAIN: ${DOMAIN}
+        EMAIL: ${EMAIL}
+        WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
+        CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
+      volumes:
+        - ./certbot/config:/etc/letsencrypt
+        - ./certbot/www:/var/www/certbot
+      entrypoint:
+        - sh
+        - -exc
+        - |
+          exec certbot certonly --keep-until-expiring \
+            --webroot --webroot-path=/var/www/certbot \
+            --non-interactive --agree-tos \
+            --email "${EMAIL}" \
+            -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
+      restart: "no"
+
 
   # ── 자동 갱신 + Nginx reload
   certbot-renew:

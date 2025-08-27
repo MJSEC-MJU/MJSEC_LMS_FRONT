@@ -146,12 +146,36 @@ jobs:
           done
 
       # 5) 인증서 발급/갱신 (메인 + WIKI 서브도메인) — Compose entrypoint 사용
-      - name: Issue / Renew SSL (DOMAIN + WIKI_DOMAIN)
+      - name: Issue / Renew SSL (DOMAIN + WIKI_DOMAIN) if needed
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
-            cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml run --rm certbot
-          "
+          WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"; [ -z "$WIKI_DOMAIN" ] && WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} <<'EOF'
+            set -e
+            cd '${{ env.REMOTE_DIR }}'
+            CERT_DIR="certbot/config/live/${{ env.DOMAIN }}"
+            PEM="$CERT_DIR/fullchain.pem"
+
+            # 1) 이미 30일 이상 유효하면 스킵
+            if [ -f "$PEM" ] && openssl x509 -in "$PEM" -noout -checkend $((30*24*3600)); then
+              echo "✅ Certificate valid > 30 days. Skipping issuance."
+              exit 0
+            fi
+
+            # 2) 재시도(최대 5회, 지수 백오프)
+            for i in 1 2 3 4 5; do
+              echo "Attempt $i/5: running certbot..."
+              if docker compose -f docker-compose.prod.yaml run --rm certbot; then
+                echo "✅ Certbot success."
+                exit 0
+              fi
+              S=$((i*15))
+              echo "⚠️  Certbot failed. Sleeping ${S}s before retry..."
+              sleep $S
+            done
+
+            echo "❌  Certbot failed after retries."
+            exit 1
+          EOF
 
       # 6) SSL helper 파일 확보
       - name: Provide SSL helper files for nginx
