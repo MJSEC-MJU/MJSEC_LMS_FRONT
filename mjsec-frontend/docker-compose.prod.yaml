@@ -63,7 +63,7 @@ services:
     restart: unless-stopped
 
   # ── 최초 인증서 발급 (메인 + 위키 서브도메인 동시)
-    certbot:
+  certbot:
       image: certbot/certbot
       environment:
         DOMAIN: ${DOMAIN}
@@ -82,7 +82,7 @@ services:
             --non-interactive --agree-tos \
             --email "${EMAIL}" \
             -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
-      restart: "no"
+      restart: "no" 
 
 
   # ── 자동 갱신 + Nginx reload
