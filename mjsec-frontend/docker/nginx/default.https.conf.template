@@ -19,6 +19,12 @@ server {
     include             /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
 
+    # ★ 추가: 업로드 한도 & 타임아웃
+    client_max_body_size 100m;      # 필요에 따라 50m/200m 등
+    proxy_read_timeout   300s;
+    proxy_send_timeout   300s;
+    send_timeout         300s;
+
     location / {
         proxy_pass       http://app;
         proxy_set_header Host              $host;
@@ -37,6 +43,13 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
     include             /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    # ★ 추가: 업로드 한도 & (대용량 업로드 안정화 옵션)
+    client_max_body_size   100m;    # 위키 업로드 한도
+    proxy_read_timeout     300s;
+    proxy_send_timeout     300s;
+    send_timeout           300s;
+    proxy_request_buffering off;    # 업로드 스트리밍(선택) - 느린 클라이언트에 유리
 
     location / {
         proxy_http_version 1.1;
