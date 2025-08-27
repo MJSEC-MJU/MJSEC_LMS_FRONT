@@ -7,11 +7,40 @@ services:
     expose:
       - "80"
 
+  # ── Wiki.js DB
+  wiki-db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wikijs
+      POSTGRES_USER: wikijs
+      POSTGRES_PASSWORD: ${WIKI_DB_PASSWORD:?set in .env}
+    volumes:
+      - ./wikijs/db:/var/lib/postgresql/data
+
+  # ── Wiki.js App
+  wiki:
+    image: requarks/wiki:2
+    depends_on:
+      - wiki-db
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: wiki-db
+      DB_PORT: 5432
+      DB_USER: wikijs
+      DB_PASS: ${WIKI_DB_PASSWORD}
+      DB_NAME: wikijs
+    expose:
+      - "3000"
+
+  # ── Nginx (가상호스팅: DOMAIN / WIKI_DOMAIN)
   nginx:
     container_name: nginx
     image: nginx:alpine
     depends_on:
       - app
+      - wiki
     ports:
       - "80:80"
       - "443:443"
@@ -19,34 +48,38 @@ services:
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./certbot/config:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    environment:           # ← 매핑 형식
+    environment:
       DOMAIN: ${DOMAIN}
+      WIKI_DOMAIN: ${WIKI_DOMAIN}
     entrypoint:
       - sh
       - -exc
       - |
-        envsubst '$DOMAIN' < /etc/nginx/templates/default.conf.template \
+        : "${WIKI_DOMAIN:=wiki.$DOMAIN}"
+        envsubst '$DOMAIN $WIKI_DOMAIN' < /etc/nginx/templates/default.conf.template \
           > /etc/nginx/conf.d/default.conf
         exec nginx -g 'daemon off;'
     restart: unless-stopped
 
+  # ── 최초 인증서 발급 (메인 + 위키 서브도메인 동시)
   certbot:
     image: certbot/certbot
-    command:
-      - certonly
-      - --webroot
-      - --webroot-path=/var/www/certbot
-      - --non-interactive
-      - --agree-tos
-      - --email
-      - "${EMAIL}"
-      - -d
-      - "${DOMAIN}"
     volumes:
       - ./certbot/config:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+    entrypoint:
+      - sh
+      - -exc
+      - |
+        : "${WIKI_DOMAIN:=wiki.$DOMAIN}"
+        certbot certonly --webroot \
+          --webroot-path=/var/www/certbot \
+          --non-interactive --agree-tos \
+          --email "${EMAIL}" \
+          -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS:-}
     restart: "no"
 
+  # ── 자동 갱신 + Nginx reload
   certbot-renew:
     image: certbot/certbot
     volumes:
@@ -60,8 +93,4 @@ services:
              done"
     restart: unless-stopped
 
-volumes:
-  certbot-config:
-    driver: local
-  certbot-www:
-    driver: local
+
