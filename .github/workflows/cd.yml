@@ -3,29 +3,27 @@ name: CD – Build, Push & Deploy to Production
 on:
   push:
     branches: [ main ]
-    # tags: [ 'v*.*.*' ]  # 릴리즈 태그 푸시 시 자동 배포가 필요하면 활성화
+    # tags: [ 'v*.*.*' ]
 
-###############################################################################
-# 리포지토리·레지스트리 공용 환경변수
-###############################################################################
 permissions:
   contents: read
   packages: write
 
 env:
-  REMOTE_DIR: /srv/mjsec          # 원격 서버 앱 루트
-  ORG:        ${{ vars.ORG }}     # 예: mjsec‑org
-  REPO:       ${{ vars.REPO }}    # 예: mjsec‑backend
-  DOMAIN:     ${{ vars.DOMAIN }}  # 예: mjsec.example.com
-  EMAIL:      ${{ vars.EMAIL }}   # Certbot 발급용 이메일
+  REMOTE_DIR: /srv/mjsec
+  ORG:        ${{ vars.ORG }}
+  REPO:       ${{ vars.REPO }}
+  DOMAIN:     ${{ vars.DOMAIN }}
+  EMAIL:      ${{ vars.EMAIL }}
+  # 선택: 비워두면 자동으로 wiki.${DOMAIN} 사용 (쉘에서 fallback 처리)
+  WIKI_DOMAIN: ${{ vars.WIKI_DOMAIN }}
 
-###############################################################################
-# 1) Build & Push (GHCR)
-###############################################################################
 jobs:
+  #############################################################################
+  # 1) Build & Push (GHCR)
+  #############################################################################
   build-and-push:
     runs-on: ubuntu-latest
-
     outputs:
       image-tag:    ${{ steps.meta.outputs.tags }}
       image-digest: ${{ steps.build.outputs.digest }}
@@ -45,7 +43,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}   # ghcr.io/owner/repo
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-
@@ -62,19 +60,17 @@ jobs:
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
-###############################################################################
-# 2) Deploy (SSH + Docker Compose)
-###############################################################################
+  #############################################################################
+  # 2) Deploy (SSH + Docker Compose)
+  #############################################################################
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      # ── 0a. 코드 체크아웃 ─────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 0. SSH 준비 ──────────────────────────────────────────────────────
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -87,20 +83,32 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "echo OK"
 
-      # ── 1. 디렉터리 & .env ──────────────────────────────────────────────
+      # 1) 원격 디렉터리 + .env 작성
       - name: Prepare remote directory & .env
         run: |
+          # 로컬에서 WIKI_DOMAIN fallback 계산
+          WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"
+          if [ -z "$WIKI_DOMAIN" ]; then WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"; fi
+
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
-            mkdir -p "${{ env.REMOTE_DIR }}"/{nginx,certbot/{config,www,logs}}
+            mkdir -p "${{ env.REMOTE_DIR }}"/{nginx,certbot/{config,www,logs},wikijs/db}
+          EOF
+
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} <<EOF
             cat > "${{ env.REMOTE_DIR }}/.env" <<EOT
             ORG=${{ env.ORG }}
             REPO=${{ env.REPO }}
             DOMAIN=${{ env.DOMAIN }}
             EMAIL=${{ env.EMAIL }}
+            WIKI_DOMAIN=${WIKI_DOMAIN}
+            # Wiki.js DB 비밀번호 (GitHub Secrets에서 주입)
+            WIKI_DB_PASSWORD=${{ secrets.WIKI_DB_PASSWORD }}
+            # 단일 인증서 → 다중 도메인 확장 시 안전하게 사용
+            CERTBOT_EXTRA_ARGS=--expand
             EOT
           EOF
 
-      # ── 1‑b. GHCR 로그인(서버 pull 용) ────────────────────────────────────
+      # 1-b) 원격 GHCR 로그인(pull용)
       - name: Log in to ghcr.io on remote host
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
@@ -110,16 +118,16 @@ jobs:
             fi
           "
 
-      # ── 2. HTTP‑only 템플릿 & Compose 업로드 ─────────────────────────────
-      - name: Upload HTTP‑only Nginx template and compose
+      # 2) HTTP-only 템플릿 & Compose 업로드
+      - name: Upload HTTP-only Nginx template and compose
         run: |
           scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker/nginx/default.http.conf.template \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
           scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker-compose.prod.yaml \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/"
 
-      # ── 3. HTTP‑only 스택 기동 ───────────────────────────────────────────
-      - name: Start HTTP‑only stack
+      # 3) HTTP-only 스택(Nginx+App) 기동
+      - name: Start HTTP-only stack
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
             cd '${{ env.REMOTE_DIR }}' &&
@@ -127,7 +135,7 @@ jobs:
             docker compose -f docker-compose.prod.yaml up -d nginx app
           "
 
-      # ── 4. HTTP 응답 대기 ───────────────────────────────────────────────
+      # 4) HTTP 응답 대기
       - name: Wait for HTTP
         run: |
           for i in {1..24}; do
@@ -137,19 +145,15 @@ jobs:
             echo "...waiting HTTP (${i}/24)"; sleep 5
           done
 
-      # ── 5. 인증서 발급/갱신 ──────────────────────────────────────────────
-      - name: Issue / Renew SSL
+      # 5) 인증서 발급/갱신 (메인 + WIKI 서브도메인) — Compose entrypoint 사용
+      - name: Issue / Renew SSL (DOMAIN + WIKI_DOMAIN)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
             cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml run --rm certbot \
-              certonly --webroot -w /var/www/certbot \
-              --non-interactive --keep-until-expiring \
-              --email '${{ env.EMAIL }}' -d '${{ env.DOMAIN }}' \
-              --agree-tos --no-eff-email --rsa-key-size 4096
+            docker compose -f docker-compose.prod.yaml run --rm certbot
           "
 
-      # ── 6. SSL helper 파일 확보 ─────────────────────────────────────────
+      # 6) SSL helper 파일 확보
       - name: Provide SSL helper files for nginx
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
@@ -159,7 +163,6 @@ jobs:
               DHPARAM=/etc/letsencrypt/ssl-dhparams.pem
               mkdir -p /etc/letsencrypt
 
-              # options‑ssl‑nginx.conf 확보
               if [ ! -f "$OPTIONS" ]; then
                 SRC=$(find /usr /opt -maxdepth 7 -type f -name options-ssl-nginx.conf | head -n1 || true)
                 if [ -n "$SRC" ]; then cp "$SRC" "$OPTIONS"
@@ -167,7 +170,6 @@ jobs:
                   curl -fsSL https://raw.githubusercontent.com/certbot/certbot/master/certbot-nginx/certbot_nginx/_internal/tls_configs/options-ssl-nginx.conf -o "$OPTIONS"
                 fi
               fi
-              # 최소 TLS 설정 (fallback)
               if [ ! -s "$OPTIONS" ]; then
                 printf "%s\n" \
                   "ssl_session_cache   shared:SSL:10m;" \
@@ -177,29 +179,29 @@ jobs:
                   "ssl_ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH;" \
                   > "$OPTIONS"
               fi
-              # Diffie‑Hellman 파라미터
               if [ ! -f "$DHPARAM" ]; then openssl dhparam -out "$DHPARAM" 2048; fi
             '
           EOF
 
-      # ── 7. HTTPS 템플릿 업로드 ───────────────────────────────────────────
+      # 7) HTTPS 템플릿 업로드
       - name: Upload HTTPS Nginx template
         run: |
           scp -P ${{ secrets.SSH_PORT }} mjsec-frontend/docker/nginx/default.https.conf.template \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
 
-      # ── 8. conf 재생성 & nginx reload ───────────────────────────────────
+      # 8) conf 재생성 & nginx reload (DOMAIN + WIKI_DOMAIN)
       - name: Apply HTTPS config & reload nginx
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
             cd '${{ env.REMOTE_DIR }}'
             docker compose -f docker-compose.prod.yaml exec nginx sh -c '
-              envsubst '\''$DOMAIN'\'' < /etc/nginx/templates/default.conf.template \
+              : "${WIKI_DOMAIN:=wiki.$DOMAIN}";
+              envsubst '\''$DOMAIN $WIKI_DOMAIN'\'' < /etc/nginx/templates/default.conf.template \
                 > /etc/nginx/conf.d/default.conf && nginx -s reload
             '
           EOF
 
-      # ── 9. 최신 이미지 pull & 전체 스택 ─────────────────────────────────
+      # 9) 최신 이미지 pull & 전체 스택 기동 (wiki 포함)
       - name: Deploy latest stack
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
@@ -213,26 +215,32 @@ jobs:
             cd '${{ env.REMOTE_DIR }}' &&
             docker compose -f docker-compose.prod.yaml exec nginx nginx -s reload
           "
-          
-      # ── 10. HTTPS 검증 ──────────────────────────────────────────────────
-      - name: Verify HTTPS
+
+      # 10) HTTPS 검증 (두 도메인)
+      - name: Verify HTTPS (DOMAIN + WIKI_DOMAIN)
         run: |
-          for i in {1..12}; do
-            if curl -sSf -m 5 https://${{ env.DOMAIN }} >/dev/null 2>&1; then
-              echo 'HTTPS OK'; break
-            fi
-            echo "...waiting HTTPS (${i}/12)"; sleep 10
+          WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"
+          if [ -z "$WIKI_DOMAIN" ]; then WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"; fi
+
+          for host in "${{ env.DOMAIN }}" "$WIKI_DOMAIN"; do
+            echo "Check https://$host"
+            for i in {1..12}; do
+              if curl -sSf -m 5 "https://$host" >/dev/null 2>&1; then
+                echo "HTTPS OK: $host"; break
+              fi
+              echo "...waiting HTTPS (${i}/12) for $host"; sleep 10
+            done
           done
 
-      # ── 11. 오래된 이미지 정리 ──────────────────────────────────────────
+      # 11) 오래된 이미지 정리
       - name: Prune images
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} \
             "docker image prune -f --filter 'until=24h' || true"
 
-###############################################################################
-# 3) 알림 (콘솔)
-###############################################################################
+  #############################################################################
+  # 3) 알림
+  #############################################################################
   notify:
     needs: [ build-and-push, deploy ]
     runs-on: ubuntu-latest
@@ -241,7 +249,7 @@ jobs:
     steps:
       - name: Success notice
         if: success()
-        run: echo "✅  Deployed to ${{ env.DOMAIN }}"
+        run: echo "✅  Deployed to ${{ env.DOMAIN }} (+ wiki)"
 
       - name: Failure notice
         if: failure()
