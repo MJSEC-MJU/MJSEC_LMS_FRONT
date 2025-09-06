@@ -50,8 +50,8 @@ services:
     volumes:
       - lms_db_data:/var/lib/mysql
     healthcheck:
-      # 컨테이너 내부에서는 MYSQL_* 변수를 사용해야 함 (root로 체크)
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD || exit 1"]
+      # 컨테이너 내부에서는 MYSQL_* 환경변수 사용 (root로 체크)
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -122,8 +122,13 @@ services:
       - sh
       - -exc
       - |
-        envsubst '$DOMAIN $WIKI_DOMAIN' < /etc/nginx/templates/default.conf.template \
-          > /etc/nginx/conf.d/default.conf
+        # 기본값 보장 + 환경 내보내기
+        : "${WIKI_DOMAIN:=wiki.${DOMAIN}}"
+        export DOMAIN WIKI_DOMAIN
+
+        # 템플릿 렌더 → 문법 검사 → 실행
+        envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+        nginx -t
         exec nginx -g 'daemon off;'
     restart: unless-stopped
 
