@@ -19,28 +19,23 @@ env:
   EMAIL:       ${{ vars.EMAIL }}
   WIKI_DOMAIN: ${{ vars.WIKI_DOMAIN }}    # 비어있으면 wiki.${DOMAIN}로 fallback
 
-  # ----- Docker Hub / LMS 프론트 빌드 경로 -----
+  # ----- Docker Hub 네임스페이스(원격에서 pull용) -----
   DOCKERHUB_USER:        ${{ vars.DOCKERHUB_USER }}
-  LMS_FRONT_TAG:         ${{ vars.LMS_FRONT_TAG || 'latest' }}
-  LMS_FRONT_CONTEXT:     ./mjsec-frontend               # <- 레포 구조에 맞게 수정
-  LMS_FRONT_DOCKERFILE:  ./mjsec-frontend/dockerfile    # <- 레포 구조에 맞게 수정
 
   # ----- Compose/템플릿 (로컬 경로) -----
-  COMPOSE_FILE:                 ./deploy/docker-compose.prod.yaml
-  NGINX_HTTP_TEMPLATE_PATH:     ./deploy/nginx/default.http.conf.template
-  NGINX_HTTPS_TEMPLATE_PATH:    ./deploy/nginx/default.https.conf.template
+  COMPOSE_FILE:                 ./docker-compose.prod.yaml
+  NGINX_HTTP_TEMPLATE_PATH:     ./docker/nginx/default.http.conf.template
+  NGINX_HTTPS_TEMPLATE_PATH:    ./docker/nginx/default.https.conf.template
 
 jobs:
   #############################################################################
-  # 1) Build & Push (GHCR + Docker Hub)
+  # 1) Build & Push (GHCR) — 홍보용 웹사이트(app)만 빌드/푸시
   #############################################################################
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
       ghcr-tags:    ${{ steps.meta_app.outputs.tags }}
       ghcr-digest:  ${{ steps.build_app.outputs.digest }}
-      lms-tags:     ${{ steps.meta_lms_front.outputs.tags }}
-      lms-digest:   ${{ steps.build_lms_front.outputs.digest }}
 
     steps:
       - uses: actions/checkout@v4
@@ -72,34 +67,6 @@ jobs:
           file:    ./mjsec-frontend/Dockerfile
           push:    true
           tags:    ${{ steps.meta_app.outputs.tags }}
-          cache-from: type=gha
-          cache-to:   type=gha,mode=max
-
-      # ----- Docker Hub (LMS 프론트) -----
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME || env.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract image metadata (lms-front → Docker Hub)
-        id: meta_lms_front
-        uses: docker/metadata-action@v5
-        with:
-          images: docker.io/${{ env.DOCKERHUB_USER }}/mjsec-lms-front
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=raw,value=${{ env.LMS_FRONT_TAG }}
-
-      - name: Build & push LMS front (Docker Hub)
-        id: build_lms_front
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ env.LMS_FRONT_CONTEXT }}
-          file:    ${{ env.LMS_FRONT_DOCKERFILE }}
-          push:    true
-          tags:    ${{ steps.meta_lms_front.outputs.tags }}
           cache-from: type=gha
           cache-to:   type=gha,mode=max
 
@@ -145,9 +112,8 @@ jobs:
           EMAIL=${{ env.EMAIL }}
           WIKI_DOMAIN=$WIKI_DOMAIN
 
-          # Docker Hub (pull)
+          # Docker Hub (pull용 네임스페이스)
           DOCKERHUB_USER=${{ env.DOCKERHUB_USER }}
-          LMS_FRONT_TAG=${{ env.LMS_FRONT_TAG }}
 
           # Wiki.js
           WIKI_DB_PASSWORD=${{ secrets.WIKI_DB_PASSWORD }}
