@@ -89,6 +89,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SERVER_SERVLET_CONTEXT_PATH: /lms
+      DOMAIN: ${DOMAIN}
     expose:
       - "8080"
 
