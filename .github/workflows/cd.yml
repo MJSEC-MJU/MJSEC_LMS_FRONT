@@ -20,12 +20,12 @@ env:
   WIKI_DOMAIN: ${{ vars.WIKI_DOMAIN }}    # 비어있으면 wiki.${DOMAIN}로 fallback
 
   # ----- Docker Hub 네임스페이스(원격에서 pull용) -----
-  DOCKERHUB_USER:        ${{ vars.DOCKERHUB_USER }}
+  DOCKERHUB_USER: ${{ vars.DOCKERHUB_USER }}
 
   # ----- Compose/템플릿 (로컬 경로) -----
-  COMPOSE_FILE:                 ./mjsec-frontend/docker-compose.prod.yaml
-  NGINX_HTTP_TEMPLATE_PATH:     ./mjsec-frontend/docker/nginx/default.http.conf.template
-  NGINX_HTTPS_TEMPLATE_PATH:    ./mjsec-frontend/docker/nginx/default.https.conf.template
+  COMPOSE_FILE:              ./mjsec-frontend/docker-compose.prod.yaml
+  NGINX_HTTP_TEMPLATE_PATH:  ./mjsec-frontend/docker/nginx/default.http.conf.template
+  NGINX_HTTPS_TEMPLATE_PATH: ./mjsec-frontend/docker/nginx/default.https.conf.template
 
 jobs:
   #############################################################################
@@ -93,6 +93,52 @@ jobs:
       - name: Test SSH
         run: ssh -o ConnectTimeout=10 -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "echo OK"
 
+      # Docker Hub에서 최신 태그 1개씩 조회 (lms-back / lms-front)
+      - name: Resolve latest Docker Hub tags (lms-back / lms-front)
+        env:
+          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          FALLBACK_USER: ${{ env.DOCKERHUB_USER }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y jq
+
+          USERNAME="${DH_USER:-$FALLBACK_USER}"
+          if [ -z "$USERNAME" ]; then
+            echo "Docker Hub username is missing (set secrets.DOCKERHUB_USERNAME or vars.DOCKERHUB_USER)."
+            exit 1
+          fi
+          if [ -z "${DH_TOKEN:-}" ]; then
+            echo "Docker Hub token missing (set secrets.DOCKERHUB_TOKEN)."
+            exit 1
+          fi
+
+          TOKEN="$(curl -s -H "Content-Type: application/json" \
+            -d "{\"username\":\"${USERNAME}\",\"password\":\"${DH_TOKEN}\"}" \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)"
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to get Docker Hub JWT"; exit 1
+          fi
+
+          API="https://hub.docker.com/v2/repositories"
+          LATEST_BACK=$(curl -s -H "Authorization: JWT ${TOKEN}" \
+            "${API}/${USERNAME}/mjsec-lms-back/tags?page_size=1&ordering=last_updated" \
+            | jq -r '.results[0].name')
+          LATEST_FRONT=$(curl -s -H "Authorization: JWT ${TOKEN}" \
+            "${API}/${USERNAME}/mjsec-lms-front/tags?page_size=1&ordering=last_updated" \
+            | jq -r '.results[0].name')
+
+          [ -z "$LATEST_BACK"  ] || [ "$LATEST_BACK"  = "null" ] && LATEST_BACK="latest"
+          [ -z "$LATEST_FRONT" ] || [ "$LATEST_FRONT" = "null" ] && LATEST_FRONT="latest"
+
+          echo "LATEST_BACK=$LATEST_BACK"
+          echo "LATEST_FRONT=$LATEST_FRONT"
+
+          {
+            echo "LATEST_BACK=$LATEST_BACK"
+            echo "LATEST_FRONT=$LATEST_FRONT"
+          } >> "$GITHUB_ENV"
+
       # 1) 원격 디렉터리 준비 + .env 업로드 (LMS 변수 포함)
       - name: Prepare remote dir & .env
         run: |
@@ -101,9 +147,10 @@ jobs:
           if [ -z "$WIKI_DOMAIN" ]; then WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"; fi
 
           # 디렉터리 생성
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "mkdir -p '${{ env.REMOTE_DIR }}'/nginx '${{ env.REMOTE_DIR }}'/certbot/config '${{ env.REMOTE_DIR }}'/certbot/www '${{ env.REMOTE_DIR }}'/certbot/logs '${{ env.REMOTE_DIR }}'/wikijs/db"
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} \
+            "mkdir -p '${{ env.REMOTE_DIR }}'/nginx '${{ env.REMOTE_DIR }}'/certbot/config '${{ env.REMOTE_DIR }}'/certbot/www '${{ env.REMOTE_DIR }}'/certbot/logs '${{ env.REMOTE_DIR }}'/wikijs/db"
 
-          # 로컬 임시 .env 생성 후 전송
+          # .env 작성 (👈 Docker Hub 최신 태그 사용)
           TMP_ENV=$(mktemp)
           cat > "$TMP_ENV" <<EOT
           ORG=${{ env.ORG }}
@@ -112,8 +159,10 @@ jobs:
           EMAIL=${{ env.EMAIL }}
           WIKI_DOMAIN=$WIKI_DOMAIN
 
-          # Docker Hub (pull용 네임스페이스)
+          # Docker Hub (pull용 네임스페이스 + 태그)
           DOCKERHUB_USER=${{ env.DOCKERHUB_USER }}
+          LMS_BACK_TAG=${LATEST_BACK:-latest}
+          LMS_FRONT_TAG=${LATEST_FRONT:-latest}
 
           # Wiki.js
           WIKI_DB_PASSWORD=${{ secrets.WIKI_DB_PASSWORD }}
@@ -232,7 +281,7 @@ jobs:
                   "ssl_ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH;" \
                   > "$OPTIONS"
               fi
-              if [ ! -f "$DHPARAM" ]; then openssl dhparam -out "$DHPARAM" 2048; fi
+              if [ ! -f "$DHPARAM" ]); then openssl dhparam -out "$DHPARAM" 2048; fi
             '
           EOSSH
 
