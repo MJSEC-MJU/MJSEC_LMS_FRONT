@@ -23,9 +23,9 @@ env:
   DOCKERHUB_USER:        ${{ vars.DOCKERHUB_USER }}
 
   # ----- Compose/템플릿 (로컬 경로) -----
-  COMPOSE_FILE:                 ./docker-compose.prod.yaml
-  NGINX_HTTP_TEMPLATE_PATH:     ./docker/nginx/default.http.conf.template
-  NGINX_HTTPS_TEMPLATE_PATH:    ./docker/nginx/default.https.conf.template
+  COMPOSE_FILE:                 ./mjsec-frontend/docker-compose.prod.yaml
+  NGINX_HTTP_TEMPLATE_PATH:     ./mjsec-frontend/docker/nginx/default.http.conf.template
+  NGINX_HTTPS_TEMPLATE_PATH:    ./mjsec-frontend/docker/nginx/default.https.conf.template
 
 jobs:
   #############################################################################
