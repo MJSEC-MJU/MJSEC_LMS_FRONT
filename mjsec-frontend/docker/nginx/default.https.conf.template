@@ -11,10 +11,10 @@ server {
     return 301 https://$host$request_uri;
 }
 
-# 443: 메인 도메인 → app (루트), /lms → 프론트, /lms/api → 백엔드
+# 443: 메인 도메인 → app (루트), /lms → 프론트, /api → 백엔드(/lms/api)
 server {
     listen 443 ssl;
-    http2 on;
+    http2  on;
     server_name $DOMAIN;
 
     ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
@@ -27,28 +27,27 @@ server {
     proxy_send_timeout   300s;
     send_timeout         300s;
 
-    # ---- LMS 백엔드(API): /lms/api/**
-    location ^~ /lms/api/ {
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade           $http_upgrade;
-        proxy_set_header Connection        "upgrade";
-        proxy_set_header Host              $host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass       http://lms-back:8080/lms/api/;   # ← 세미콜론 추가
-    }
+    # Docker DNS 리졸버 (컨테이너 이름 해석 안정화)
+    resolver 127.0.0.11 ipv6=off valid=30s;
 
-    # ---- (옵션) /api/** 도 백엔드로 프록시 (/api -> /lms/api 프리픽스 매칭)
+    # ---- API: /api/**  →  lms-back:8080/lms/api/**
     location ^~ /api/ {
         proxy_http_version 1.1;
+
+        # 기본 헤더
         proxy_set_header Upgrade           $http_upgrade;
         proxy_set_header Connection        "upgrade";
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass       http://lms-back:8080/lms/api/;
+        proxy_set_header X-Forwarded-Host  $host;
+
+        # 백엔드가 path base(/api) 인지 알 수 있도록(선택)
+        proxy_set_header X-Forwarded-Prefix /api;
+
+        # prefix 매핑: /api/* → /lms/api/*
+        proxy_pass http://lms-back:8080/lms/api/;
     }
 
     # /lms -> /lms/ 정규화
@@ -56,30 +55,32 @@ server {
         return 301 /lms/;
     }
 
-    # ---- LMS 프론트(SPA): /lms/** (정적자산/SPA fallback)
+    # ---- LMS 프론트(SPA): /lms/**
     location ^~ /lms/ {
         proxy_http_version 1.1;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass       http://lms-front:80/;  # 프리픽스 제거 위해 끝에 /
+
+        # trailing slash 중요: /lms/ 다음 경로를 그대로 유지
+        proxy_pass http://lms-front:80/;
     }
 
     # ---- 메인 앱(루트)
     location / {
-        proxy_pass       http://app;
-        proxy_set_header Host              $host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass                          http://app;
+        proxy_set_header Host               $host;
+        proxy_set_header X-Real-IP          $remote_addr;
+        proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto  $scheme;
     }
 }
 
 # 443: 위키 서브도메인 → wiki:3000
 server {
     listen 443 ssl;
-    http2 on;
+    http2  on;
     server_name $WIKI_DOMAIN;
 
     ssl_certificate     /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
