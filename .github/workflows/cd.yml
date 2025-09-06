@@ -128,8 +128,9 @@ jobs:
             "${API}/${USERNAME}/mjsec-lms-front/tags?page_size=1&ordering=last_updated" \
             | jq -r '.results[0].name')
 
-          [ -z "$LATEST_BACK"  ] || [ "$LATEST_BACK"  = "null" ] && LATEST_BACK="latest"
-          [ -z "$LATEST_FRONT" ] || [ "$LATEST_FRONT" = "null" ] && LATEST_FRONT="latest"
+          # 안전한 fallback
+          if [ -z "$LATEST_BACK" ] || [ "$LATEST_BACK" = "null" ]; then LATEST_BACK="latest"; fi
+          if [ -z "$LATEST_FRONT" ] || [ "$LATEST_FRONT" = "null" ]; then LATEST_FRONT="latest"; fi
 
           echo "LATEST_BACK=$LATEST_BACK"
           echo "LATEST_FRONT=$LATEST_FRONT"
@@ -255,7 +256,7 @@ jobs:
             exit 1
           EOSSH
 
-      # 6) SSL helper 파일 확보
+      # 6) SSL helper 파일 확보  (✅ 여분 ')' 오타 수정)
       - name: Provide SSL helper files for nginx
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOSSH'
@@ -281,7 +282,9 @@ jobs:
                   "ssl_ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH;" \
                   > "$OPTIONS"
               fi
-              if [ ! -f "$DHPARAM" ]); then openssl dhparam -out "$DHPARAM" 2048; fi
+              if [ ! -f "$DHPARAM" ]; then
+                openssl dhparam -out "$DHPARAM" 2048
+              fi
             '
           EOSSH
 
