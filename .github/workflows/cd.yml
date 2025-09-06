@@ -3,7 +3,14 @@ name: CD – Build, Push & Deploy to Production
 on:
   push:
     branches: [ main ]
-    # tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+        inputs:
+          caller_repo:
+            description: "Who triggered"
+            required: false
+          image_tag:
+            description: "Optional image tag"
+            required: false   
 
 permissions:
   contents: read

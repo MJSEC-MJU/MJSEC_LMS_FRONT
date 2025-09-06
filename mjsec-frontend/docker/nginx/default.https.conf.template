@@ -36,7 +36,19 @@ server {
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass       http://lms-back:8080/lms/api/  
+        proxy_pass       http://lms-back:8080/lms/api/;   # ← 세미콜론 추가
+    }
+
+    # ---- (옵션) /api/** 도 백엔드로 프록시 (/api -> /lms/api 프리픽스 매칭)
+    location ^~ /api/ {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass       http://lms-back:8080/lms/api/;
     }
 
     # /lms -> /lms/ 정규화
@@ -51,7 +63,7 @@ server {
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_pass       http://lms-front:80/;   # ← 끝에 슬래시 추가(프리픽스 제거)
+        proxy_pass       http://lms-front:80/;  # 프리픽스 제거 위해 끝에 /
     }
 
     # ---- 메인 앱(루트)
