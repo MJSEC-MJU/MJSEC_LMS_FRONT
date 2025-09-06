@@ -50,10 +50,12 @@ services:
     volumes:
       - lms_db_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$LMS_MYSQL_USER -p$LMS_MYSQL_PASSWORD || exit 1"]
+      # 컨테이너 내부에서는 MYSQL_* 변수를 사용해야 함 (root로 체크)
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
+      start_period: 30s
 
   # ── LMS Redis
   lms-redis:
