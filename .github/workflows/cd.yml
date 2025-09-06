@@ -233,10 +233,21 @@ jobs:
       - name: Issue / Renew SSL (DOMAIN + WIKI_DOMAIN)
         run: |
           set -euo pipefail
-          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.USER }}@${{ secrets.HOST }}" 'bash -se' <<'EOSSH'
+
+          # GitHub Actions 표현식에 기본값(:-) 쓰지 말고 bash에서 처리
+          WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"
+          if [ -z "$WIKI_DOMAIN" ]; then
+            WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"
+          fi
+          echo "Using WIKI_DOMAIN=$WIKI_DOMAIN"
+
+          # 원격 실행 (종료코드 캡처)
+          set +e
+          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.USER }}@${{ secrets.HOST }}" 'bash -se' <<'EOF'
             set -Eeuo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
+            # 필요 시에만 발급/갱신 시도 (30일 이상 남으면 skip)
             CERT_DIR="certbot/config/live/${{ env.DOMAIN }}"
             PEM="$CERT_DIR/fullchain.pem"
             if [ -f "$PEM" ] && openssl x509 -in "$PEM" -noout -checkend $((30*24*3600)); then
@@ -244,6 +255,7 @@ jobs:
               exit 0
             fi
 
+            # 재시도(최대 5회)
             for i in 1 2 3 4 5; do
               echo "Attempt $i/5: running certbot..."
               if docker compose -f docker-compose.prod.yaml run --rm certbot; then
@@ -252,14 +264,20 @@ jobs:
               fi
               sleep $((i*15))
             done
+
             echo "Certbot failed after retries."
             exit 1
-          EOSSH
+          EOF
+          RC=$?
+          set -e
 
-      # 6) SSL helper 파일 확보  (✅ 여분 ')' 오타 수정)
+          echo "Remote exit code: $RC"
+          exit $RC
+
+      # 6) SSL helper 파일 확보 
       - name: Provide SSL helper files for nginx
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOSSH'
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
             cd '${{ env.REMOTE_DIR }}'
             docker compose -f docker-compose.prod.yaml run --rm --entrypoint "" certbot sh -euxc '
               OPTIONS=/etc/letsencrypt/options-ssl-nginx.conf
@@ -282,11 +300,9 @@ jobs:
                   "ssl_ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH;" \
                   > "$OPTIONS"
               fi
-              if [ ! -f "$DHPARAM" ]; then
-                openssl dhparam -out "$DHPARAM" 2048
-              fi
+              if [ ! -f "$DHPARAM" ]; then openssl dhparam -out "$DHPARAM" 2048; fi
             '
-          EOSSH
+          EOF
 
       # 7) HTTPS 템플릿 업로드
       - name: Upload HTTPS Nginx template
@@ -297,13 +313,14 @@ jobs:
       # 8) conf 재생성 & nginx reload
       - name: Apply HTTPS config & reload nginx
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
-            cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml exec nginx sh -c \"
-              : \\\"\\\${WIKI_DOMAIN:=wiki.\\\${DOMAIN}}\\\"; 
-              envsubst '\\$DOMAIN \\$WIKI_DOMAIN' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -s reload
-            \"
-          "
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
+            cd '${{ env.REMOTE_DIR }}'
+            docker compose -f docker-compose.prod.yaml exec nginx sh -c '
+              : "${WIKI_DOMAIN:=wiki.$DOMAIN}";
+              envsubst '\''$DOMAIN $WIKI_DOMAIN'\'' < /etc/nginx/templates/default.conf.template \
+                > /etc/nginx/conf.d/default.conf && nginx -s reload
+            '
+          EOF
 
       # 9) 최신 이미지 pull & 전체 스택 기동 (wiki/lms 포함)
       - name: Deploy latest stack

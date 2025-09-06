@@ -106,8 +106,6 @@ services:
     depends_on:
       - app
       - wiki
-      - lms-back
-      - lms-front
     ports:
       - "80:80"
       - "443:443"
@@ -117,42 +115,39 @@ services:
       - ./certbot/www:/var/www/certbot
     environment:
       DOMAIN: ${DOMAIN}
+      # Compose 기본값 문법으로 fallback 처리 (쉘의 := 제거)
       WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
     entrypoint:
       - sh
       - -exc
       - |
-        # 기본값 보장 + 환경 내보내기
-        : "${WIKI_DOMAIN:=wiki.${DOMAIN}}"
-        export DOMAIN WIKI_DOMAIN
-
-        # 템플릿 렌더 → 문법 검사 → 실행
-        envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
-        nginx -t
+        # envsubst로 템플릿 렌더
+        envsubst '$DOMAIN $WIKI_DOMAIN' < /etc/nginx/templates/default.conf.template \
+          > /etc/nginx/conf.d/default.conf
         exec nginx -g 'daemon off;'
     restart: unless-stopped
 
   # ── 최초 인증서 발급 (메인 + 위키 서브도메인)
   certbot:
-    image: certbot/certbot
-    environment:
-      DOMAIN: ${DOMAIN}
-      EMAIL: ${EMAIL}
-      WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
-      CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
-    volumes:
-      - ./certbot/config:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint:
-      - sh
-      - -exc
-      - |
-        exec certbot certonly --keep-until-expiring \
-          --webroot --webroot-path=/var/www/certbot \
-          --non-interactive --agree-tos \
-          --email "${EMAIL}" \
-          -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
-    restart: "no"
+      image: certbot/certbot
+      environment:
+        DOMAIN: ${DOMAIN}
+        EMAIL: ${EMAIL}
+        WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
+        CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
+      volumes:
+        - ./certbot/config:/etc/letsencrypt
+        - ./certbot/www:/var/www/certbot
+      entrypoint:
+        - sh
+        - -exc
+        - |
+          exec certbot certonly --keep-until-expiring \
+            --webroot --webroot-path=/var/www/certbot \
+            --non-interactive --agree-tos \
+            --email "${EMAIL}" \
+            -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
+      restart: "no" 
 
   # ── 자동 갱신 + Nginx reload
   certbot-renew:
