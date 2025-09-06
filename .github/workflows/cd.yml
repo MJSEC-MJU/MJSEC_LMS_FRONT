@@ -274,7 +274,7 @@ jobs:
           echo "Remote exit code: $RC"
           exit $RC
 
-      # 6) SSL helper 파일 확보 
+      # 6) SSL helper 파일 확보
       - name: Provide SSL helper files for nginx
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
@@ -303,26 +303,7 @@ jobs:
               if [ ! -f "$DHPARAM" ]; then openssl dhparam -out "$DHPARAM" 2048; fi
             '
           EOF
-
-      # 7) HTTPS 템플릿 업로드
-      - name: Upload HTTPS Nginx template
-        run: |
-          scp -P ${{ secrets.SSH_PORT }} "${{ env.NGINX_HTTPS_TEMPLATE_PATH }}" \
-            ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
-
-      # 8) conf 재생성 & nginx reload
-      - name: Apply HTTPS config & reload nginx
-        run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
-            cd '${{ env.REMOTE_DIR }}'
-            docker compose -f docker-compose.prod.yaml exec nginx sh -c '
-              : "${WIKI_DOMAIN:=wiki.$DOMAIN}";
-              envsubst '\''$DOMAIN $WIKI_DOMAIN'\'' < /etc/nginx/templates/default.conf.template \
-                > /etc/nginx/conf.d/default.conf && nginx -s reload
-            '
-          EOF
-
-      # 9) 최신 이미지 pull & 전체 스택 기동 (wiki/lms 포함)
+      # 8) 최신 이미지 pull & 전체 스택 기동 
       - name: Deploy latest stack
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
@@ -330,12 +311,29 @@ jobs:
             docker compose -f docker-compose.prod.yaml pull &&
             docker compose -f docker-compose.prod.yaml up -d --remove-orphans
           "
-      - name: Reload nginx proxy
+
+      # 7) HTTPS 템플릿 업로드 (적용은 아직 X)
+      - name: Upload HTTPS Nginx template
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} "
-            cd '${{ env.REMOTE_DIR }}' &&
-            docker compose -f docker-compose.prod.yaml exec nginx nginx -s reload
-          "
+          scp -P ${{ secrets.SSH_PORT }} "${{ env.NGINX_HTTPS_TEMPLATE_PATH }}" \
+            ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
+
+      
+
+      # 9) (지금) HTTPS conf 생성 + Nginx reload  ✅ 스택 기동 이후로 이동
+      - name: Apply HTTPS config & reload nginx (after stack is up)
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
+            cd '${{ env.REMOTE_DIR }}'
+            docker compose -f docker-compose.prod.yaml exec nginx sh -exc '
+              : "${WIKI_DOMAIN:=wiki.$DOMAIN}";
+              envsubst '\''$DOMAIN $WIKI_DOMAIN'\'' \
+                < /etc/nginx/templates/default.conf.template \
+                > /etc/nginx/conf.d/default.conf
+              nginx -t
+              nginx -s reload
+            '
+          EOF
 
       # 10) HTTPS 검증 (도메인/위키 + LMS 프론트/백엔드 경로)
       - name: Verify HTTPS
