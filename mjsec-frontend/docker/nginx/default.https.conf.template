@@ -11,7 +11,7 @@ server {
     return 301 https://$host$request_uri;
 }
 
-# 443: 메인 도메인 → app (루트), /lms → 프론트, /api → 백엔드(/lms/api)
+# 443: 메인 도메인 → app (루트), /lms → 프론트, /lms/api → 백엔드
 server {
     listen 443 ssl;
     http2  on;
@@ -30,11 +30,11 @@ server {
     # Docker DNS 리졸버 (컨테이너 이름 해석 안정화)
     resolver 127.0.0.11 ipv6=off valid=30s;
 
-    # ---- API: /api/**  →  lms-back:8080/lms/api/**
-    location ^~ /api/ {
+    # ---- API: /lms/api/**  →  lms-back:8080 로 직접 전달 (프론트 우회)
+    location ^~ /lms/api/ {
         proxy_http_version 1.1;
 
-        # 기본 헤더
+        # 업그레이드/프록시 공통 헤더
         proxy_set_header Upgrade           $http_upgrade;
         proxy_set_header Connection        "upgrade";
         proxy_set_header Host              $host;
@@ -43,11 +43,11 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host  $host;
 
-        # 백엔드가 path base(/api) 인지 알 수 있도록(선택)
-        proxy_set_header X-Forwarded-Prefix /api;
+        # (선택) 백엔드가 프리픽스 인지하도록
+        proxy_set_header X-Forwarded-Prefix /lms/api;
 
-        # prefix 매핑: /api/* → /lms/api/*
-        proxy_pass http://lms-back:8080/lms/api/;
+        # 원본 URI 그대로 전달(슬래시 없는 형태) → /lms/api/* 유지
+        proxy_pass http://lms-back:8080;
     }
 
     # /lms -> /lms/ 정규화
