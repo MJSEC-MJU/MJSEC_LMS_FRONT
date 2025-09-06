@@ -3,8 +3,6 @@ services:
   app:
     image: ghcr.io/${ORG}/${REPO}:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    environment:
-      FLASK_ENV: production
     expose:
       - "80"
 
