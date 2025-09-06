@@ -1,4 +1,5 @@
 services:
+  # ── 메인 앱 (Flask)
   app:
     image: ghcr.io/${ORG}/${REPO}:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -34,13 +35,79 @@ services:
     expose:
       - "3000"
 
-  # ── Nginx (가상호스팅: DOMAIN / WIKI_DOMAIN)
+  # ── LMS DB (MySQL 8)
+  lms-db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${LMS_MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${LMS_MYSQL_DATABASE}
+      MYSQL_USER: ${LMS_MYSQL_USER}
+      MYSQL_PASSWORD: ${LMS_MYSQL_PASSWORD}
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+      "--default-authentication-plugin=mysql_native_password"
+    ]
+    volumes:
+      - lms_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$LMS_MYSQL_USER -p$LMS_MYSQL_PASSWORD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── LMS Redis
+  lms-redis:
+    image: redis:6-alpine
+    restart: unless-stopped
+    volumes:
+      - lms_redis_data:/data
+
+  # ── LMS 백엔드 (Spring) — 컨텍스트패스는 /lms/api
+  lms-back:
+    image: ${DOCKERHUB_USER}/mjsec-lms-back:${LMS_BACK_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      lms-db:
+        condition: service_healthy
+      lms-redis:
+        condition: service_started
+    environment:
+      # DB
+      SPRING_DATASOURCE_URL: jdbc:mysql://lms-db:3306/${LMS_MYSQL_DATABASE}?serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: ${LMS_MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${LMS_MYSQL_PASSWORD}
+      # Redis
+      SPRING_REDIS_HOST: lms-redis
+      SPRING_REDIS_PORT: 6379
+      # App
+      GMAIL_USERNAME: ${GMAIL_USERNAME}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_NUMBER: ${ADMIN_NUMBER}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SERVER_SERVLET_CONTEXT_PATH: /lms/api
+    expose:
+      - "8080"
+
+  # ── LMS 프론트 (정적 SPA) — Vite base는 /lms/ 로 빌드
+  lms-front:
+    image: ${DOCKERHUB_USER}/mjsec-lms-front:${LMS_FRONT_TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "80"
+
+  # ── 리버스 프록시 Nginx
   nginx:
     container_name: nginx
     image: nginx:alpine
     depends_on:
       - app
       - wiki
+      - lms-back
+      - lms-front
     ports:
       - "80:80"
       - "443:443"
@@ -50,40 +117,37 @@ services:
       - ./certbot/www:/var/www/certbot
     environment:
       DOMAIN: ${DOMAIN}
-      # Compose 기본값 문법으로 fallback 처리 (쉘의 := 제거)
       WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
     entrypoint:
       - sh
       - -exc
       - |
-        # envsubst로 템플릿 렌더
         envsubst '$DOMAIN $WIKI_DOMAIN' < /etc/nginx/templates/default.conf.template \
           > /etc/nginx/conf.d/default.conf
         exec nginx -g 'daemon off;'
     restart: unless-stopped
 
-  # ── 최초 인증서 발급 (메인 + 위키 서브도메인 동시)
+  # ── 최초 인증서 발급 (메인 + 위키 서브도메인)
   certbot:
-      image: certbot/certbot
-      environment:
-        DOMAIN: ${DOMAIN}
-        EMAIL: ${EMAIL}
-        WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
-        CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
-      volumes:
-        - ./certbot/config:/etc/letsencrypt
-        - ./certbot/www:/var/www/certbot
-      entrypoint:
-        - sh
-        - -exc
-        - |
-          exec certbot certonly --keep-until-expiring \
-            --webroot --webroot-path=/var/www/certbot \
-            --non-interactive --agree-tos \
-            --email "${EMAIL}" \
-            -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
-      restart: "no" 
-
+    image: certbot/certbot
+    environment:
+      DOMAIN: ${DOMAIN}
+      EMAIL: ${EMAIL}
+      WIKI_DOMAIN: ${WIKI_DOMAIN:-wiki.${DOMAIN}}
+      CERTBOT_EXTRA_ARGS: ${CERTBOT_EXTRA_ARGS:-}
+    volumes:
+      - ./certbot/config:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint:
+      - sh
+      - -exc
+      - |
+        exec certbot certonly --keep-until-expiring \
+          --webroot --webroot-path=/var/www/certbot \
+          --non-interactive --agree-tos \
+          --email "${EMAIL}" \
+          -d "${DOMAIN}" -d "${WIKI_DOMAIN}" ${CERTBOT_EXTRA_ARGS}
+    restart: "no"
 
   # ── 자동 갱신 + Nginx reload
   certbot-renew:
@@ -98,3 +162,7 @@ services:
                sleep 12h;
              done"
     restart: unless-stopped
+
+volumes:
+  lms_db_data:
+  lms_redis_data:
