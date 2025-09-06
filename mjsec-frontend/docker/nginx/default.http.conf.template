@@ -1,7 +1,7 @@
 # HTTP only – issue/renew certificates
 server {
     listen 80;
-    server_name ${DOMAIN};
+    server_name $DOMAIN;
 
     # Let’s Encrypt web‑root
     location ^~ /.well-known/acme-challenge/ {
