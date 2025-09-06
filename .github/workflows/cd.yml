@@ -22,8 +22,8 @@ env:
   # ----- Docker Hub / LMS 프론트 빌드 경로 -----
   DOCKERHUB_USER:        ${{ vars.DOCKERHUB_USER }}
   LMS_FRONT_TAG:         ${{ vars.LMS_FRONT_TAG || 'latest' }}
-  LMS_FRONT_CONTEXT:     ./lms-front               # <- 레포 구조에 맞게 수정
-  LMS_FRONT_DOCKERFILE:  ./lms-front/Dockerfile    # <- 레포 구조에 맞게 수정
+  LMS_FRONT_CONTEXT:     ./mjsec-frontend               # <- 레포 구조에 맞게 수정
+  LMS_FRONT_DOCKERFILE:  ./mjsec-frontend/dockerfile    # <- 레포 구조에 맞게 수정
 
   # ----- Compose/템플릿 (로컬 경로) -----
   COMPOSE_FILE:                 ./deploy/docker-compose.prod.yaml
