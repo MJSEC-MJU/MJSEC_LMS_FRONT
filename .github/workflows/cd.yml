@@ -158,7 +158,7 @@ jobs:
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} \
             "mkdir -p '${{ env.REMOTE_DIR }}'/nginx '${{ env.REMOTE_DIR }}'/certbot/config '${{ env.REMOTE_DIR }}'/certbot/www '${{ env.REMOTE_DIR }}'/certbot/logs '${{ env.REMOTE_DIR }}'/wikijs/db"
 
-          # .env 작성 (👈 Docker Hub 최신 태그 사용)
+          # .env 작성 (Docker Hub 최신 태그 사용)
           TMP_ENV=$(mktemp)
           cat > "$TMP_ENV" <<EOT
           ORG=${{ env.ORG }}
@@ -174,7 +174,10 @@ jobs:
 
           # Wiki.js
           WIKI_DB_PASSWORD=${{ secrets.WIKI_DB_PASSWORD }}
-
+          WIKI_API_TOKEN =  ${{ secrets.WIKI_API_TOKEN }}
+          WIKI_DOMAIN: ${{ secrets.WIKI_DOMAIN }}
+          WIKI_GROUP_ID: ${{ secrets.WIKI_GROUP_ID }}
+          
           # LMS RUNTIME
           LMS_MYSQL_ROOT_PASSWORD=${{ secrets.LMS_MYSQL_ROOT_PASSWORD }}
           LMS_MYSQL_DATABASE=${{ vars.LMS_MYSQL_DATABASE }}
