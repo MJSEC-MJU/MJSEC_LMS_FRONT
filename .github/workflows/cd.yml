@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
-        inputs:
-          caller_repo:
-            description: "Who triggered"
-            required: false
-          image_tag:
-            description: "Optional image tag"
-            required: false   
+    inputs:
+      caller_repo:
+        description: "Who triggered"
+        required: false
+      image_tag:
+        description: "Optional image tag"
+        required: false
 
 permissions:
   contents: read
@@ -36,52 +36,10 @@ env:
 
 jobs:
   #############################################################################
-  # 1) Build & Push (GHCR) — 홍보용 웹사이트(app)만 빌드/푸시
-  #############################################################################
-  build-and-push:
-    runs-on: ubuntu-latest
-    outputs:
-      ghcr-tags:    ${{ steps.meta_app.outputs.tags }}
-      ghcr-digest:  ${{ steps.build_app.outputs.digest }}
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-
-      # ----- GHCR (메인 app) -----
-      - name: Login to ghcr.io
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract image metadata (app → GHCR)
-        id: meta_app
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Build & push app image (GHCR)
-        id: build_app
-        uses: docker/build-push-action@v5
-        with:
-          context: ./mjsec-frontend
-          file:    ./mjsec-frontend/Dockerfile
-          push:    true
-          tags:    ${{ steps.meta_app.outputs.tags }}
-          cache-from: type=gha
-          cache-to:   type=gha,mode=max
-
-  #############################################################################
-  # 2) Deploy (SSH + Docker Compose)
+  # Deploy (SSH + Docker Compose)
+  #   - build/push는 CI 워크플로우로 이전됨
   #############################################################################
   deploy:
-    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
@@ -158,7 +116,7 @@ jobs:
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} \
             "mkdir -p '${{ env.REMOTE_DIR }}'/nginx '${{ env.REMOTE_DIR }}'/certbot/config '${{ env.REMOTE_DIR }}'/certbot/www '${{ env.REMOTE_DIR }}'/certbot/logs '${{ env.REMOTE_DIR }}'/wikijs/db"
 
-          # .env 작성 (👈 Docker Hub 최신 태그 사용)
+          # .env 작성 (Docker Hub 최신 태그 사용)
           TMP_ENV=$(mktemp)
           cat > "$TMP_ENV" <<EOT
           ORG=${{ env.ORG }}
@@ -174,6 +132,8 @@ jobs:
 
           # Wiki.js
           WIKI_DB_PASSWORD=${{ secrets.WIKI_DB_PASSWORD }}
+          WIKI_API_TOKEN=${{ secrets.WIKI_API_TOKEN }}
+          WIKI_GROUP_ID=${{ secrets.WIKI_GROUP_ID }}
 
           # LMS RUNTIME
           LMS_MYSQL_ROOT_PASSWORD=${{ secrets.LMS_MYSQL_ROOT_PASSWORD }}
@@ -241,20 +201,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          # GitHub Actions 표현식에 기본값(:-) 쓰지 말고 bash에서 처리
           WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"
           if [ -z "$WIKI_DOMAIN" ]; then
             WIKI_DOMAIN="wiki.${{ env.DOMAIN }}"
           fi
           echo "Using WIKI_DOMAIN=$WIKI_DOMAIN"
 
-          # 원격 실행 (종료코드 캡처)
           set +e
           ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.USER }}@${{ secrets.HOST }}" 'bash -se' <<'EOF'
             set -Eeuo pipefail
             cd '${{ env.REMOTE_DIR }}'
 
-            # 필요 시에만 발급/갱신 시도 (30일 이상 남으면 skip)
             CERT_DIR="certbot/config/live/${{ env.DOMAIN }}"
             PEM="$CERT_DIR/fullchain.pem"
             if [ -f "$PEM" ] && openssl x509 -in "$PEM" -noout -checkend $((30*24*3600)); then
@@ -262,7 +219,6 @@ jobs:
               exit 0
             fi
 
-            # 재시도(최대 5회)
             for i in 1 2 3 4 5; do
               echo "Attempt $i/5: running certbot..."
               if docker compose -f docker-compose.prod.yaml run --rm certbot; then
@@ -310,6 +266,7 @@ jobs:
               if [ ! -f "$DHPARAM" ]; then openssl dhparam -out "$DHPARAM" 2048; fi
             '
           EOF
+
       # 8) 최신 이미지 pull & 전체 스택 기동 
       - name: Deploy latest stack
         run: |
@@ -319,15 +276,13 @@ jobs:
             docker compose -f docker-compose.prod.yaml up -d --remove-orphans
           "
 
-      # 7) HTTPS 템플릿 업로드 (적용은 아직 X)
+      # 9) HTTPS 템플릿 업로드 (적용은 아직 X)
       - name: Upload HTTPS Nginx template
         run: |
           scp -P ${{ secrets.SSH_PORT }} "${{ env.NGINX_HTTPS_TEMPLATE_PATH }}" \
             ${{ secrets.USER }}@${{ secrets.HOST }}:"${{ env.REMOTE_DIR }}/nginx/default.conf.template"
 
-      
-
-      # 9) (지금) HTTPS conf 생성 + Nginx reload  ✅ 스택 기동 이후로 이동
+      # 10) (지금) HTTPS conf 생성 + Nginx reload
       - name: Apply HTTPS config & reload nginx (after stack is up)
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} << 'EOF'
@@ -342,7 +297,7 @@ jobs:
             '
           EOF
 
-      # 10) HTTPS 검증 (도메인/위키 + LMS 프론트/백엔드 경로)
+      # 11) HTTPS 검증 (도메인/위키 + LMS 프론트/백엔드 경로)
       - name: Verify HTTPS
         run: |
           WIKI_DOMAIN="${{ env.WIKI_DOMAIN }}"
@@ -365,17 +320,17 @@ jobs:
           curl -s -o /dev/null -m 5 "https://${{ env.DOMAIN }}/lms/api/actuator/health" \
             && echo "OK: actuator" || echo "NOTE: actuator not enabled (skip)"
 
-      # 11) 오래된 이미지 정리
+      # 12) 오래된 이미지 정리
       - name: Prune images
         run: |
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.USER }}@${{ secrets.HOST }} \
             "docker image prune -f --filter 'until=24h' || true"
 
   #############################################################################
-  # 3) 알림
+  # 알림
   #############################################################################
   notify:
-    needs: [ build-and-push, deploy ]
+    needs: [ deploy ]
     runs-on: ubuntu-latest
     if: always()
 
