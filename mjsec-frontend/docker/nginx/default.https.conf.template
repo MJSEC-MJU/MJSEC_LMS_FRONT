@@ -1,3 +1,12 @@
+# ------------------------------------------------------------
+# Referer가 /lms/ 인 /images/* 요청은 lms-front로 우회
+# (파일 맨 위: http{} 컨텍스트 안에서 사용)
+# ------------------------------------------------------------
+map $http_referer $images_backend {
+    default                        http://app;           # 기본은 루트 앱
+    ~*^https?://[^/]+/lms(/|$)     http://lms-front:80;  # /lms 에서 온 요청은 lms-front
+}
+
 # 80: ACME + HTTPS 리다이렉트(모든 호스트)
 server {
     listen 80;
@@ -27,14 +36,12 @@ server {
     proxy_send_timeout   300s;
     send_timeout         300s;
 
-    # Docker DNS 리졸버 (컨테이너 이름 해석 안정화)
+    # Docker DNS 리졸버
     resolver 127.0.0.11 ipv6=off valid=30s;
 
-    # ---- API: /lms/api/**  →  lms-back:8080 로 직접 전달 (프론트 우회)
+    # ---- API: /lms/api/**  →  lms-back:8080
     location ^~ /lms/api/ {
         proxy_http_version 1.1;
-
-        # 업그레이드/프록시 공통 헤더
         proxy_set_header Upgrade           $http_upgrade;
         proxy_set_header Connection        "upgrade";
         proxy_set_header Host              $host;
@@ -42,11 +49,8 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host  $host;
-
-        # (선택) 백엔드가 프리픽스 인지하도록
         proxy_set_header X-Forwarded-Prefix /lms/api;
 
-        # 원본 URI 그대로 전달(슬래시 없는 형태) → /lms/api/* 유지
         proxy_pass http://lms-back:8080;
     }
 
@@ -63,8 +67,25 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # trailing slash 중요: /lms/ 다음 경로를 그대로 유지
+        # trailing slash 중요: /lms/ 다음 경로 유지
         proxy_pass http://lms-front:80/;
+    }
+
+    # ---- (핫픽스) 기본 이미지 절대경로로 새면 /lms 쪽으로 리다이렉트
+    location = /images/default-study.svg {
+        return 301 /lms/images/default-study.svg;
+    }
+
+    # ---- /images/* : /lms에서 유입되면 lms-front, 아니면 app
+    location ^~ /images/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 변수 proxy_pass: 경로는 그대로 유지됨
+        proxy_pass $images_backend;
     }
 
     # ---- 메인 앱(루트)
