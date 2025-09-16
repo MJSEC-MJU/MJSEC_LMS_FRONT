@@ -19,6 +19,7 @@ server {
 }
 
 # 443: 메인 도메인
+# 443: 메인 도메인 → app (루트), /lms → 프론트, /lms/api → 백엔드
 server {
     listen 443 ssl;
     http2  on;
@@ -35,7 +36,10 @@ server {
     send_timeout         300s;
     resolver 127.0.0.11 ipv6=off valid=30s;
 
-    # 1) 이미지 전용: 반드시 일반 /lms/api/ 블록 "앞"에 둠!
+    # /lms -> /lms/ 정규화
+    location = /lms { return 301 /lms/; }
+
+    # 1) 이미지 전용 블록 (일반 /lms 보다 "앞에" 두고, 컨텍스트(/lms) 유지!)
     location ^~ /lms/api/v1/image/ {
         proxy_http_version 1.1;
         proxy_set_header Host              $host;
@@ -43,13 +47,15 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # location과 proxy_pass의 URI 규칙:
-        # - location이 /lms/api/v1/image/ 로 매칭되면
-        # - proxy_pass가 /api/v1/image/ 로 대체되어 백엔드로 전달
-        proxy_pass http://lms-back:8080/api/v1/image/;
+        # ★ 여기! 컨텍스트를 포함해서 보냄
+        proxy_pass http://lms-back:8080/lms/api/v1/image/;
+
+        # (선택) 캐시 헤더
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800";
     }
 
-    # 2) 일반 API (기존 유지)
+    # 2) 일반 API: 원본 URI 그대로 전달 (컨텍스트 유지)
     location ^~ /lms/api/ {
         proxy_http_version 1.1;
         proxy_set_header Upgrade           $http_upgrade;
@@ -61,13 +67,11 @@ server {
         proxy_set_header X-Forwarded-Host  $host;
         proxy_set_header X-Forwarded-Prefix /lms/api;
 
+        # ★ 컨텍스트 포함 그대로 전달
         proxy_pass http://lms-back:8080;
     }
 
-    # /lms -> /lms/ 정규화
-    location = /lms { return 301 /lms/; }
-
-    # LMS 프론트
+    # LMS 프론트(SPA)
     location ^~ /lms/ {
         proxy_http_version 1.1;
         proxy_set_header Host              $host;
@@ -77,7 +81,7 @@ server {
         proxy_pass http://lms-front:80/;
     }
 
-    # (옵션) 절대경로로 새는 기본 아이콘 보정
+    # (옵션) /images 기본아이콘 절대경로로 새는 요청 보정
     location = /images/default-study.svg { return 301 /lms/images/default-study.svg; }
 
     # 루트 앱
@@ -89,6 +93,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+
 
 
 # 443: 위키 서브도메인 → wiki:3000
