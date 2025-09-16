@@ -1,11 +1,9 @@
-# ------------------------------------------------------------
-# Referer가 /lms/ 인 /images/* 요청은 lms-front로 우회
-# (파일 맨 위: http{} 컨텍스트 안에서 사용)
-# ------------------------------------------------------------
-map $http_referer $images_backend {
-    default                        http://app;           # 기본은 루트 앱
-    ~*^https?://[^/]+/lms(/|$)     http://lms-front:80;  # /lms 에서 온 요청은 lms-front
-}
+# =========================
+# nginx.conf (full example)
+# =========================
+
+# (선택) 필요 시 gzip 등 공통 설정 가능
+# gzip on;
 
 # 80: ACME + HTTPS 리다이렉트(모든 호스트)
 server {
@@ -39,9 +37,30 @@ server {
     # Docker DNS 리졸버
     resolver 127.0.0.11 ipv6=off valid=30s;
 
-    # ---- API: /lms/api/**  →  lms-back:8080
+    # ------------------------------------------------------------
+    # 1) 이미지 전용 프록시 (핀셋 수정)
+    #    /lms/api/v1/image/**  →  lms-back:8080/api/v1/image/**
+    #    ※ 이 블록은 반드시 일반 /lms/api/ 블록 "앞"에 둡니다.
+    # ------------------------------------------------------------
+    location ~ ^/lms/api(/v1/image/.*)$ {
+        proxy_http_version 1.1;
+
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # $1 = /v1/image/...
+        proxy_pass http://lms-back:8080$1;
+    }
+
+    # ------------------------------------------------------------
+    # 2) 일반 API 프록시 (기존 그대로 유지)
+    #    이 블록이 대부분의 /lms/api/** 요청을 처리
+    # ------------------------------------------------------------
     location ^~ /lms/api/ {
         proxy_http_version 1.1;
+
         proxy_set_header Upgrade           $http_upgrade;
         proxy_set_header Connection        "upgrade";
         proxy_set_header Host              $host;
@@ -59,9 +78,10 @@ server {
         return 301 /lms/;
     }
 
-    # ---- LMS 프론트(SPA): /lms/**
+    # 3) LMS 프론트(SPA): /lms/**
     location ^~ /lms/ {
         proxy_http_version 1.1;
+
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -71,24 +91,12 @@ server {
         proxy_pass http://lms-front:80/;
     }
 
-    # ---- (핫픽스) 기본 이미지 절대경로로 새면 /lms 쪽으로 리다이렉트
+    # (선택) 혹시 절대경로로 새는 기본 아이콘 요청 보정
     location = /images/default-study.svg {
         return 301 /lms/images/default-study.svg;
     }
 
-    # ---- /images/* : /lms에서 유입되면 lms-front, 아니면 app
-    location ^~ /images/ {
-        proxy_http_version 1.1;
-        proxy_set_header Host              $host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        # 변수 proxy_pass: 경로는 그대로 유지됨
-        proxy_pass $images_backend;
-    }
-
-    # ---- 메인 앱(루트)
+    # 4) 메인 앱(루트)
     location / {
         proxy_pass                          http://app;
         proxy_set_header Host               $host;
