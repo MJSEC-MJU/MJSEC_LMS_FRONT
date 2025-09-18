@@ -93,7 +93,7 @@ services:
     expose:
       - "8080"
     volumes:
-      - ./lms/uploads:/uploads
+      - ./lms/uploads:/app/uploads
 
   # ── LMS 프론트 (정적 SPA) — Vite base는 /lms/ 로 빌드
   lms-front:
