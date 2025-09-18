@@ -18,7 +18,7 @@ server {
     return 301 https://$host$request_uri;
 }
 
-# 443: 메인 도메인
+
 # 443: 메인 도메인 → app (루트), /lms → 프론트, /lms/api → 백엔드
 server {
     listen 443 ssl;
@@ -46,8 +46,6 @@ server {
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # ★ 여기! 컨텍스트를 포함해서 보냄
         proxy_pass http://lms-back:8080/lms/api/v1/image/;
 
         # (선택) 캐시 헤더
@@ -67,7 +65,7 @@ server {
         proxy_set_header X-Forwarded-Host  $host;
         proxy_set_header X-Forwarded-Prefix /lms/api;
 
-        # ★ 컨텍스트 포함 그대로 전달
+        #  컨텍스트 포함 그대로 전달
         proxy_pass http://lms-back:8080;
     }
 
