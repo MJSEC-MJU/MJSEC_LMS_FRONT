@@ -92,7 +92,7 @@ body{
   width: 8px;
   height: 8px;
   background: transparent;
-  border-top: 2px solid #fff;
+  border-top: 2px solid #ffffff;
   border-right: 2px solid #fff;
   transition: .2s;
   opacity: 0;

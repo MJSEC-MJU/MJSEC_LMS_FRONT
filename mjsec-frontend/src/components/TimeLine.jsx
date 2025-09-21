@@ -2,6 +2,34 @@ import { useEffect } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 
+// 타임라인 데이터 배열 - 여기서 쉽게 관리할 수 있습니다
+const timelineData = [
+  {
+    id: 1,
+    when: "2024 2nd sem",
+    text: "•동아리 개설\n•HSPACE x MJSEC 파트너십 체결\n•명지대 모의해킹대회 개최\n•2024 사이버시큐리티 해커톤대회 최우승상",
+    image: "/timeline-source/pic1.jpg"
+  },
+  {
+    id: 2,
+    when: "2024 winter",
+    text: "•화이트햇스쿨 3기 6명 합격",
+    image: "/timeline-source/pic2.jpg"
+  },
+  {
+    id: 3,
+    when: "2025 1st sem",
+    text: "•건국대, 세종대와 MSG CTF 대회 개최\n-개인: 1등, 대학별: 1등\n•SPACE WAR (HSPACE 주관) 1위, 3위",
+    image: "/timeline-source/pic3.jpg"
+  },
+  {
+    id: 4,
+    when: "2025 summer",
+    text: "•BoB(Best of Best) 14기 2명 합격\n (보안제품개발, 보안컨설팅)\n•랜섬웨어 개발\n•한국디지털포렌식학회 학술대회 표창",
+    image: "/timeline-source/pic4.jpg"
+  }
+];
+
 export default function Timeline() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -19,7 +47,7 @@ export default function Timeline() {
     });
 
     return () => ScrollTrigger.getAll().forEach(t => t.kill());
-  }, []);
+  }, [timelineData.length]); // timelineData.length가 변경될 때마다 재실행
 
   return (
     <div className="timeline">
@@ -29,45 +57,28 @@ export default function Timeline() {
         <div className="timeline-list">
           <div className="timeline-progress"><div className="timeline-progress-bar" /></div>
 
-          {/* 1st Item */}
-          <div className="timeline-item">
-            <div className="timeline_left fadeup"><div className="timeline-when">2024&nbsp;2nd&nbsp;sem</div></div>
-            <div className="timeline_centre"><div className="timeline_circle" /></div>
-            <div className="timeline_right fadeup">
-              <div className="timeline-text">&bull;동아리&nbsp;개설<br />&bull;HSPACE&nbsp;x&nbsp;MJSEC&nbsp;파트너십&nbsp;체결<br />&bull;명지대&nbsp;모의해킹대회&nbsp;개최<br />&bull;2024&nbsp;사이버시큐리티&nbsp;해커톤대회&nbsp;최우승상</div>
-              <div className="timeline-image"><img src="/timeline-source/pic1.jpg" width="480" /></div>
+          {/* 동적으로 타임라인 아이템들을 렌더링 */}
+          {timelineData.map((item) => (
+            <div key={item.id} className="timeline-item">
+              <div className="timeline_left fadeup">
+                <div className="timeline-when">{item.when.replace(/\s/g, '\u00A0')}</div>
+              </div>
+              <div className="timeline_centre"><div className="timeline_circle" /></div>
+              <div className="timeline_right fadeup">
+                <div className="timeline-text">
+                  {item.text.split('\n').map((line, index) => (
+                    <span key={index}>
+                      {line.replace(/\s/g, '\u00A0')}
+                      {index < item.text.split('\n').length - 1 && <br />}
+                    </span>
+                  ))}
+                </div>
+                <div className="timeline-image">
+                  <img src={item.image} width="480" alt={`Timeline ${item.id}`} />
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* 2nd Item */}
-          <div className="timeline-item">
-            <div className="timeline_left fadeup"><div className="timeline-when">2024&nbsp;winter</div></div>
-            <div className="timeline_centre"><div className="timeline_circle" /></div>
-            <div className="timeline_right fadeup">
-              <div className="timeline-text">&bull;화이트햇스쿨&nbsp;3기&nbsp;6명&nbsp;합격</div>
-              <div className="timeline-image"><img src="/timeline-source/pic2.jpg" width="480" /></div>
-            </div>
-          </div>
-
-          {/* 3rd Item */}
-          <div className="timeline-item">
-            <div className="timeline_left fadeup"><div className="timeline-when">2025&nbsp;1st&nbsp;sem</div></div>
-            <div className="timeline_centre"><div className="timeline_circle" /></div>
-            <div className="timeline_right fadeup">
-              <div className="timeline-text">&bull;건국대,&nbsp;세종대와&nbsp;MSG&nbsp;CTF&nbsp;대회&nbsp;개최<br />-개인: 1등, 대학별: 1등<br />&bull;SPACE&nbsp;WAR&nbsp;(HSPACE&nbsp;주관)&nbsp;1위,&nbsp;3위</div>
-              <div className="timeline-image"><img src="/timeline-source/pic3.jpg" width="480"  /></div>
-            </div>
-          </div>
-
-          {/* 4th Item */}
-          <div className="timeline-item">
-            <div className="timeline_left fadeup"><div className="timeline-when">2025&nbsp;summer</div></div>
-            <div className="timeline_centre"><div className="timeline_circle" /></div>
-            <div className="timeline_right fadeup">
-              <div className="timeline-text">&bull;BoB(Best&nbsp;of&nbsp;Best)&nbsp;14기&nbsp;2명&nbsp;합격<br />&nbsp;(보안제품개발,&nbsp;보안컨설팅)<br />&bull;랜섬웨어&nbsp;개발<br />&bull;한국디지털포렌식학회&nbsp;학술대회&nbsp;표창</div>
-              <div className="timeline-image"><img src="/timeline-source/pic4.jpg" width="480" /></div>
-            </div>
-          </div>
+          ))}
 
         </div>
       </div>

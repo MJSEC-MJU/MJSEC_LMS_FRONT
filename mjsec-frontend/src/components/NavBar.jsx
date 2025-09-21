@@ -70,7 +70,7 @@ export default function Navbar({ onFaqClick, onMainClick, onIntroClick, onActivi
           <Item
             text="LMS"
             className="expandHome"
-            onClick={() => alert("LMS페이지에 대한 접근 권한이 없습니다.")}
+            onClick={() => window.open("https://mjsec.kr/lms", "_blank")}
           />
           <Item
             text="WIKI"
@@ -97,9 +97,9 @@ export default function Navbar({ onFaqClick, onMainClick, onIntroClick, onActivi
           e.preventDefault();
           handleMobileMenuClick(onFaqClick);
         }}>FAQ</a>
-        <a href="#" onClick={(e) => {
+        <a href="/lms" onClick={(e) => {
           e.preventDefault();
-          handleMobileMenuClick(() => alert("LMS페이지에 대한 접근 권한이 없습니다."));
+          handleMobileMenuClick(() => window.open("https://mjsec.kr/lms", "_blank"));
         }}>LMS</a>
         <a href="#" onClick={(e) => {
           e.preventDefault();

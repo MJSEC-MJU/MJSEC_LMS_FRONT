@@ -25,7 +25,7 @@ export default function StickyAlbum() {
     const stickySection = document.querySelector(".sticky");
     const stickyHeader  = document.querySelector(".sticky-header");
     const cards         = document.querySelectorAll(".card");
-    const stickyHeight  = window.innerHeight * 6;
+    const stickyHeight  = window.innerHeight * 4;
 
     ScrollTrigger.create({
       trigger: stickySection,
