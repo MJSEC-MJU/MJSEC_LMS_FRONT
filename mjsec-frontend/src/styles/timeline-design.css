@@ -1,0 +1,300 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&display=swap");
+
+.gh-timeline-root {
+  --gh-bg: #07090e;
+  --gh-fg: #e9eef7;
+  --gh-muted: rgba(201, 213, 232, 0.82);
+  --gh-year: #2f3a52;
+  --gh-card-bg: rgba(14, 18, 28, 0.68);
+  --gh-card-border: rgba(160, 181, 214, 0.22);
+  --gh-year-layer-opacity: 1;
+  --gh-panel-pad: 2vh 2vw;
+  --gh-tile-radius: 8px;
+  --gh-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
+
+  width: 100%;
+  position: relative;
+  background: var(--gh-bg);
+  color: var(--gh-fg);
+  overflow-x: clip;
+  font-family: "Archivo", "Manrope", sans-serif;
+  transition: background-color 0.45s ease, color 0.45s ease;
+}
+
+.gh-panels {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.gh-panel {
+  --gh-panel-gap: 50vh;
+  position: relative;
+  height: 100svh;
+  padding: var(--gh-panel-pad);
+  margin-bottom: var(--gh-panel-gap);
+}
+
+.gh-panels > li:last-child .gh-panel {
+  margin-bottom: 0;
+}
+
+.gh-panel-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: min(1400px, 100%);
+  margin: 0 auto;
+}
+
+.gh-tile {
+  position: absolute;
+  width: var(--gh-w, 30vw);
+  z-index: var(--gh-z, 1);
+  will-change: transform;
+}
+
+.gh-tile__box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--gh-ratio, 16 / 9);
+  overflow: hidden;
+  border-radius: var(--gh-tile-radius);
+  background: rgba(127, 127, 127, 0.12);
+  box-shadow: var(--gh-shadow);
+}
+
+.gh-text-only__box {
+  aspect-ratio: unset;
+}
+
+.gh-tile__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.1);
+  will-change: transform, opacity;
+}
+
+.gh-tile__text {
+  padding: clamp(14px, 2vw, 22px);
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  opacity: 0;
+  transform: translateY(24px);
+  will-change: transform, opacity;
+  background: var(--gh-card-bg);
+  border: 1px solid var(--gh-card-border);
+  backdrop-filter: blur(10px);
+  border-radius: inherit;
+}
+
+.gh-tile__text h3 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.gh-tile__text p {
+  margin: 0;
+  font-size: clamp(16px, 1.8vw, 22px);
+  line-height: 1.55;
+  color: var(--gh-muted);
+  max-width: 46ch;
+  white-space: pre-line;
+}
+
+.gh-pos-top-left {
+  top: 0;
+  left: 0;
+}
+
+.gh-pos-top-left-10 {
+  top: 10%;
+  left: 0;
+}
+
+.gh-pos-top-right {
+  top: 0;
+  right: 0;
+}
+
+.gh-pos-bottom-left-0 {
+  bottom: 0;
+  left: 0;
+}
+
+.gh-pos-bottom-left {
+  bottom: 0;
+  left: 10%;
+}
+
+.gh-pos-bottom-left-10 {
+  bottom: 10%;
+  left: 10%;
+}
+
+.gh-pos-bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
+.gh-pos-bottom-right-10 {
+  bottom: 0;
+  right: 10%;
+}
+
+.gh-pos-top-quarter-left {
+  top: 25%;
+  left: 0;
+}
+
+.gh-pos-bottom-center-lg {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.gh-pos-bottom-center-lg-10 {
+  bottom: -10%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.gh-pos-center-center {
+  bottom: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.gh-years-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: var(--gh-year-layer-opacity);
+  pointer-events: none;
+}
+
+.gh-years-wrapper {
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gh-year {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--gh-year);
+  line-height: 0.86;
+  clip-path: inset(2% 0 2% 0);
+}
+
+.gh-char {
+  display: inline-block;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-size: clamp(11rem, 18vw, 25rem);
+  will-change: transform, opacity;
+}
+
+@media (max-width: 900px) {
+  .gh-panel {
+    --gh-panel-gap: 24vh;
+    height: 100svh;
+    padding: 18px 14px;
+  }
+
+  .gh-panel-stage {
+    min-height: 100%;
+    display: block;
+    padding-top: 0;
+  }
+
+  .gh-tile {
+    position: absolute;
+    width: clamp(240px, 68vw, 520px);
+  }
+
+  .gh-tile[data-tile-type="image"],
+  .gh-tile[data-tile-type="video"] {
+    width: clamp(280px, 78vw, 620px);
+  }
+
+  .gh-tile[data-tile-type="text"] {
+    width: clamp(250px, 70vw, 560px);
+  }
+
+  .gh-pos-top-left,
+  .gh-pos-top-left-10 { top: 14%; left: 3%; }
+  .gh-pos-top-right { top: 11%; right: 4%; }
+  .gh-pos-bottom-left-0 { bottom: 8%; left: 4%; }
+  .gh-pos-bottom-left { bottom: 10%; left: 6%; }
+  .gh-pos-bottom-left-10 { bottom: 14%; left: 4%; }
+  .gh-pos-bottom-right { bottom: 10%; right: 4%; }
+  .gh-pos-bottom-right-10 { bottom: 14%; right: 4%; }
+  .gh-pos-top-quarter-left { top: 23%; left: 4%; }
+  .gh-pos-bottom-center-lg,
+  .gh-pos-bottom-center-lg-10 {
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .gh-pos-center-center {
+    bottom: 50%;
+    left: 50%;
+    transform: translate(-50%, 50%);
+  }
+
+  .gh-year {
+    clip-path: inset(2% 0 2% 0);
+    padding-inline: 4vw;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    transform: translateY(-50%);
+    z-index: auto;
+  }
+
+  .gh-char {
+    font-size: clamp(3.8rem, 16vw, 6.2rem);
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+  }
+
+  .gh-years-layer {
+    z-index: 0;
+    opacity: 0.58;
+  }
+
+  .gh-years-wrapper {
+    min-height: 100svh;
+    height: auto;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gh-tile__media,
+  .gh-tile__text {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
