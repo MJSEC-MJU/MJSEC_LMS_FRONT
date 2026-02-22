@@ -8,12 +8,28 @@ const sequenceIntroTitle = document.querySelector(".sequence-intro-title");
 const sequenceScrollEnd = `+=300%`;
 const introAnimationEndProgress = 0.6;
 const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
-const prefersHighQualitySource = !isMobileViewport && (window.devicePixelRatio || 1) >= 1.25;
+const prefersReducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+const prefersReducedMotion = prefersReducedMotionQuery.matches;
+const networkInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+const saveDataEnabled = Boolean(networkInfo && networkInfo.saveData);
+const hardwareThreads = Number(navigator.hardwareConcurrency || 0);
+const deviceMemoryGb = Number(navigator.deviceMemory || 0);
+const isLowPerformanceDevice =
+  saveDataEnabled
+  || (hardwareThreads > 0 && hardwareThreads <= 4)
+  || (deviceMemoryGb > 0 && deviceMemoryGb <= 4);
+const isMobileLiteMode = isMobileViewport || (isMobileViewport && isLowPerformanceDevice);
+const shouldReduceMotion = prefersReducedMotion || isMobileLiteMode;
+document.documentElement.classList.toggle("is-mobile-lite", isMobileLiteMode);
+if (document.body) {
+  document.body.classList.toggle("is-mobile-lite", isMobileLiteMode);
+}
+const prefersHighQualitySource = !isMobileLiteMode && (window.devicePixelRatio || 1) >= 1.25;
 const sequenceVideoSrc = prefersHighQualitySource
   ? "/static/videos/upscaled-video-scrub-hq.mp4"
   : "/static/videos/upscaled-video-scrub.mp4";
-const sequenceScrub = isMobileViewport ? 0.52 : 0.4;
-const maxCanvasDpr = isMobileViewport ? 1.25 : 2;
+const sequenceScrub = isMobileLiteMode ? 0.68 : (isMobileViewport ? 0.52 : 0.4);
+const maxCanvasDpr = isMobileLiteMode ? 1 : (isMobileViewport ? 1.25 : 2);
 
 const sequenceState = {
   progress: 0,
@@ -21,7 +37,7 @@ const sequenceState = {
 
 const sequenceVideo = document.createElement("video");
 sequenceVideo.src = sequenceVideoSrc;
-sequenceVideo.preload = "auto";
+sequenceVideo.preload = isMobileLiteMode ? "metadata" : "auto";
 sequenceVideo.muted = true;
 sequenceVideo.playsInline = true;
 sequenceVideo.setAttribute("playsinline", "true");
@@ -45,9 +61,11 @@ let desiredVideoTime = 0;
 let seekInFlight = false;
 let queuedSeekAfterCurrent = false;
 let cachedDrawLayout = null;
+let lastSequenceFramePaintAt = 0;
 
 const SEEK_EPSILON = isMobileViewport ? (1 / 36) : (1 / 48);
 const DRAW_EPSILON = 1 / 240;
+const MOBILE_SEQUENCE_FRAME_INTERVAL_MS = 1000 / 24;
 const BASE_MAX_SEEK_STEP = isMobileViewport ? 0.065 : 0.095;
 const BASE_TARGET_BLEND = isMobileViewport ? 0.5 : 0.64;
 const MAX_EXTRA_SEEK_STEP = isMobileViewport ? 0.08 : 0.12;
@@ -199,7 +217,7 @@ sequenceVideo.addEventListener("loadeddata", () => {
   queueRender(true);
 });
 
-if (typeof sequenceVideo.requestVideoFrameCallback === "function") {
+if (!isMobileLiteMode && typeof sequenceVideo.requestVideoFrameCallback === "function") {
   const pumpVideoFrames = () => {
     sequenceVideo.requestVideoFrameCallback(() => {
       queueRender();
@@ -234,16 +252,26 @@ sequenceVideo.addEventListener("error", () => {
 sequenceVideo.load();
 
 function render(forceFrameDraw = false) {
-  if (isDrawableMedia(sequenceVideo)) {
-    const currentTime = Number.isFinite(sequenceVideo.currentTime) ? sequenceVideo.currentTime : 0;
-    if (forceFrameDraw || Math.abs(currentTime - lastRenderedVideoTime) > DRAW_EPSILON) {
-      scaleMedia(sequenceVideo, context);
-      lastRenderedVideoTime = currentTime;
-      hasDrawnSequenceFrame = true;
+  const now = performance.now();
+  const canPaintSequenceFrame =
+    forceFrameDraw
+    || !isMobileLiteMode
+    || (now - lastSequenceFramePaintAt) >= MOBILE_SEQUENCE_FRAME_INTERVAL_MS;
+
+  if (canPaintSequenceFrame) {
+    if (isDrawableMedia(sequenceVideo)) {
+      const currentTime = Number.isFinite(sequenceVideo.currentTime) ? sequenceVideo.currentTime : 0;
+      if (forceFrameDraw || Math.abs(currentTime - lastRenderedVideoTime) > DRAW_EPSILON) {
+        scaleMedia(sequenceVideo, context);
+        lastRenderedVideoTime = currentTime;
+        hasDrawnSequenceFrame = true;
+        lastSequenceFramePaintAt = now;
+      }
+    } else if (sequenceVideoHasError || !hasDrawnSequenceFrame) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      lastRenderedVideoTime = -1;
+      lastSequenceFramePaintAt = now;
     }
-  } else if (sequenceVideoHasError || !hasDrawnSequenceFrame) {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    lastRenderedVideoTime = -1;
   }
 
   if (sequenceIntroTitle) {
@@ -330,13 +358,15 @@ function initHamburgerMenu() {
   if (!button || !overlay) return;
 
   const menuLinks = Array.from(overlay.querySelectorAll(".hamburger-menu__item"));
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const menuAudioEnabled = !isMobileLiteMode;
+  const AudioCtx = menuAudioEnabled ? (window.AudioContext || window.webkitAudioContext) : null;
   let hoverAudioContext = null;
   let hoverNoiseBuffer = null;
   let lastHoverToneAt = 0;
   let hoverAudioUnlocked = false;
 
   const ensureHoverAudio = (tryResume = false) => {
+    if (!menuAudioEnabled) return null;
     if (!AudioCtx) return null;
     if (!hoverAudioContext) hoverAudioContext = new AudioCtx();
     if ((hoverAudioUnlocked || tryResume) && hoverAudioContext.state === "suspended") {
@@ -346,6 +376,7 @@ function initHamburgerMenu() {
   };
 
   const unlockHoverAudio = () => {
+    if (!menuAudioEnabled) return;
     hoverAudioUnlocked = true;
     ensureHoverAudio(true);
   };
@@ -492,11 +523,13 @@ function initHamburgerMenu() {
     document.body.classList.toggle("menu-open", isOpen);
   };
 
-  window.addEventListener("pointerdown", unlockHoverAudio, { once: true, passive: true });
-  window.addEventListener("keydown", unlockHoverAudio, { once: true });
+  if (menuAudioEnabled) {
+    window.addEventListener("pointerdown", unlockHoverAudio, { once: true, passive: true });
+    window.addEventListener("keydown", unlockHoverAudio, { once: true });
+  }
 
   button.addEventListener("click", () => {
-    unlockHoverAudio();
+    if (menuAudioEnabled) unlockHoverAudio();
     const nextOpen = !overlay.classList.contains("is-open");
     setMenuOpen(nextOpen);
   });
@@ -508,8 +541,10 @@ function initHamburgerMenu() {
   });
 
   menuLinks.forEach((link) => {
-    link.addEventListener("mouseenter", playHoverTone);
-    link.addEventListener("focus", playHoverTone);
+    if (!isMobileLiteMode) {
+      link.addEventListener("mouseenter", playHoverTone);
+      link.addEventListener("focus", playHoverTone);
+    }
     link.addEventListener("click", () => {
       setMenuOpen(false);
     });
@@ -635,10 +670,11 @@ function initSpaceApproachSection() {
 
   if (!section || !world || !viewport) return;
 
-  const Z_GAP = 600;
-  const ITEM_COUNT = 15;
+  const useLiteMode = shouldReduceMotion || isMobileLiteMode;
+  const Z_GAP = useLiteMode ? 760 : 600;
+  const ITEM_COUNT = useLiteMode ? 9 : 15;
   const LOOP_SIZE = ITEM_COUNT * Z_GAP;
-  const STAR_COUNT = 100;
+  const STAR_COUNT = useLiteMode ? 24 : 100;
   const TEXTS = ["MJ Univ", "Web / Web3", "Pwnable", "Reversing", "AI", "Digital Forensics", "LLM", "Crypto", "Network"];
   const CARD_LOGO_SRC = "/static/images/%EA%B7%B8%EB%A6%BC1.png";
   const isMobileLayout = window.matchMedia("(max-width: 768px)").matches;
@@ -727,11 +763,16 @@ function initSpaceApproachSection() {
   const getTravelDistance = () => Math.max(section.offsetHeight - window.innerHeight, 1);
 
   const update = (scroll, vel) => {
-    const warp = Math.min(Math.abs(vel) * 2, 400);
-    viewport.style.perspective = `${800 - warp}px`;
+    if (useLiteMode) {
+      viewport.style.perspective = "760px";
+      world.style.transform = "none";
+    } else {
+      const warp = Math.min(Math.abs(vel) * 2, 400);
+      viewport.style.perspective = `${800 - warp}px`;
 
-    const tilt = vel * 0.05;
-    world.style.transform = `rotateX(${-tilt}deg)`;
+      const tilt = vel * 0.05;
+      world.style.transform = `rotateX(${-tilt}deg)`;
+    }
 
     const speedFactor = 2.5;
     const currentDist = scroll * speedFactor;
@@ -753,7 +794,7 @@ function initSpaceApproachSection() {
     learnTitle.el.style.opacity = String(titleAlpha);
 
     if (titleAlpha > 0) {
-      const drift = Math.sin(Date.now() * 0.0015) * 2.5;
+      const drift = useLiteMode ? 0 : (Math.sin(Date.now() * 0.0015) * 2.5);
       learnTitle.el.style.transform = `translate3d(${learnTitle.x}px, ${learnTitle.y + drift}px, ${titleZ}px)`;
     }
 
@@ -784,10 +825,10 @@ function initSpaceApproachSection() {
       if (alpha <= 0) return;
 
       if (item.type === "star") {
-        const stretch = Math.max(1, Math.min(1 + Math.abs(vel) * 0.05, 5));
+        const stretch = useLiteMode ? 1 : Math.max(1, Math.min(1 + Math.abs(vel) * 0.05, 5));
         item.el.style.transform = `translate3d(${item.x}px, ${item.y}px, ${vizZ}px) scale3d(1, ${stretch}, 1)`;
       } else {
-        const floatRot = Math.sin(Date.now() * 0.001 + item.baseZ) * 5;
+        const floatRot = useLiteMode ? 0 : (Math.sin(Date.now() * 0.001 + item.baseZ) * 5);
         item.el.style.transform = `translate3d(${item.x}px, ${item.y}px, ${vizZ}px) rotateZ(${item.rotZ + floatRot}deg)`;
       }
     });
@@ -804,7 +845,16 @@ function initSpaceApproachSection() {
     },
   });
 
-  const animate = () => {
+  let lastFrameAt = 0;
+  const minFrameInterval = useLiteMode ? (1000 / 24) : 0;
+
+  const animate = (now = performance.now()) => {
+    if (minFrameInterval && (now - lastFrameAt) < minFrameInterval) {
+      requestAnimationFrame(animate);
+      return;
+    }
+    lastFrameAt = now;
+
     smoothScroll += (targetScroll - smoothScroll) * 0.12;
     smoothVelocity += (targetVelocity - smoothVelocity) * 0.1;
     update(smoothScroll, smoothVelocity);
@@ -826,12 +876,12 @@ function initMethodologyScrollTrigger() {
   const contentWrap = timeline.querySelector(".timeline-content-wrapper");
   const revealBlocks = [header, connector, contentWrap].filter(Boolean);
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (shouldReduceMotion) {
     gsap.set([timeline, ...revealBlocks, ...steps], {
       opacity: 1,
       y: 0,
       scale: 1,
-      filter: "blur(0px)",
+      filter: "none",
     });
     return;
   }
@@ -934,8 +984,9 @@ function initGallerySection() {
     return;
   }
 
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReducedMotion) {
+  const reduceGalleryMotion = prefersReducedMotion;
+  const useLiteGalleryLayers = isMobileLiteMode;
+  if (reduceGalleryMotion) {
     gsap.set(image, { clearProps: "width,height" });
     gsap.set(layers, { opacity: 1, scale: 1, transformOrigin: "center center" });
     return;
@@ -979,7 +1030,7 @@ function initGallerySection() {
       const layerProgress = clamp01((adjustedProgress - revealStart) / (revealEnd - revealStart));
       gsap.set(layer, {
         opacity: layerProgress,
-        scale: layerProgress,
+        scale: useLiteGalleryLayers ? 1 : layerProgress,
       });
     });
   };
@@ -1057,6 +1108,7 @@ function initSequenceTimelineEffects() {
   );
   let scrambleTimer = null;
   let redrawRaf = null;
+  const useLiteTimelineFx = shouldReduceMotion || isMobileLiteMode;
 
   const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -1104,6 +1156,7 @@ function initSequenceTimelineEffects() {
   };
 
   const queueConnectorDraw = () => {
+    if (useLiteTimelineFx) return;
     if (redrawRaf) cancelAnimationFrame(redrawRaf);
     redrawRaf = requestAnimationFrame(() => {
       drawConnector();
@@ -1116,6 +1169,11 @@ function initSequenceTimelineEffects() {
 
     const finalText = titleEl.dataset.final || titleEl.textContent || "";
     titleEl.dataset.final = finalText;
+
+    if (useLiteTimelineFx) {
+      titleEl.textContent = finalText;
+      return;
+    }
 
     if (scrambleTimer) clearInterval(scrambleTimer);
 
@@ -1189,28 +1247,32 @@ function initSequenceTimelineEffects() {
     });
   });
 
-  window.addEventListener("resize", queueConnectorDraw);
-  window.addEventListener("orientationchange", queueConnectorDraw);
+  if (!useLiteTimelineFx) {
+    window.addEventListener("resize", queueConnectorDraw);
+    window.addEventListener("orientationchange", queueConnectorDraw);
 
-  // Keep connector alignment stable while the section is being transformed by scroll animations.
-  ScrollTrigger.create({
-    trigger: timeline,
-    start: "top bottom",
-    end: "bottom top",
-    scrub: true,
-    onUpdate: queueConnectorDraw,
-    onRefresh: queueConnectorDraw,
-  });
+    // Keep connector alignment stable while the section is being transformed by scroll animations.
+    ScrollTrigger.create({
+      trigger: timeline,
+      start: "top bottom",
+      end: "bottom top",
+      scrub: true,
+      onUpdate: queueConnectorDraw,
+      onRefresh: queueConnectorDraw,
+    });
 
-  if ("ResizeObserver" in window) {
-    const ro = new ResizeObserver(queueConnectorDraw);
-    ro.observe(timeline);
+    if ("ResizeObserver" in window) {
+      const ro = new ResizeObserver(queueConnectorDraw);
+      ro.observe(timeline);
+    }
+
+    timeline.querySelectorAll(".module-glyph").forEach((img) => {
+      if (!img.complete) img.addEventListener("load", queueConnectorDraw, { once: true });
+    });
   }
 
-  timeline.querySelectorAll(".module-glyph").forEach((img) => {
-    if (!img.complete) img.addEventListener("load", queueConnectorDraw, { once: true });
-  });
-
   activateStep(activeIndex);
-  queueConnectorDraw();
+  if (!useLiteTimelineFx) {
+    queueConnectorDraw();
+  }
 }
