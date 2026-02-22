@@ -17,7 +17,7 @@ const THEME_PRESETS = {
     bg: "#020202",
     fg: "#eaf4ff",
     muted: "rgba(207, 222, 243, 0.86)",
-    year: "#222936",
+    year: "#979ba3",
     cardBg: "rgba(11, 17, 29, 0.74)",
     cardBorder: "rgba(143, 166, 203, 0.26)",
     yearLayerOpacity: 0.33,

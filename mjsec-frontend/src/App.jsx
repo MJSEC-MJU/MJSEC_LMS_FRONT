@@ -1,9 +1,14 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import TimelineDesign from "./components/TimelineDesign.jsx";
 import IntroSection from "./components/IntroSection.jsx";
 
 const scriptLoadPromises = new Map();
 const INTRO_PREF_KEY = "mjsec:intro";
+
+function isMobileViewportClient() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia("(max-width: 768px)").matches;
+}
 
 function readIntroPreference() {
   if (typeof window === "undefined") return null;
@@ -103,12 +108,17 @@ async function bootstrapLegacyScripts() {
   });
 
   await loadScript({ src: "/static/script-video.js?v=20260220a" });
-  await loadScript({ src: "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js" });
-  await loadScript({ src: "/static/qr-widget.js", type: "module" });
+
+  if (!isMobileViewportClient()) {
+    await loadScript({ src: "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js" });
+    await loadScript({ src: "/static/qr-widget.js", type: "module" });
+  }
 }
 
 export default function App() {
   const introEnabled = useMemo(() => getIntroEnabled(), []);
+  const isMobileViewport = useMemo(() => isMobileViewportClient(), []);
+  const [isMobileSocialMenuOpen, setIsMobileSocialMenuOpen] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -126,7 +136,16 @@ export default function App() {
 
   const handleDiscordClick = (event) => {
     event.preventDefault();
+    if (isMobileViewport) {
+      setIsMobileSocialMenuOpen(false);
+    }
     window.alert("현재 이 기능은 중단되었습니다");
+  };
+
+  const handleFooterSocialNavigate = () => {
+    if (isMobileViewport) {
+      setIsMobileSocialMenuOpen(false);
+    }
   };
 
   return (
@@ -515,20 +534,51 @@ export default function App() {
                                       <p>email: gdool88@gmail.com</p>
                                   </article>
                               </div>
-                              <div className="site-footer__social" aria-label="Social media links">
-                                  <div className="site-footer__social-item">
-                                      <a className="site-footer__social-pill site-footer__social-pill--github" href="https://github.com/MJSEC-MJU" aria-label="GitHub">
+                              <div
+                                  className={`site-footer__social${isMobileSocialMenuOpen ? " is-mobile-open" : ""}`}
+                                  aria-label="Social media links"
+                              >
+                                  <button
+                                      type="button"
+                                      className={`site-footer__social-toggle${isMobileSocialMenuOpen ? " is-open" : ""}`}
+                                      aria-label={isMobileSocialMenuOpen ? "Close social links" : "Open social links"}
+                                      aria-expanded={isMobileSocialMenuOpen}
+                                      onClick={() => setIsMobileSocialMenuOpen((prev) => !prev)}
+                                  >
+                                      <i className="fas fa-share-alt" aria-hidden="true"></i>
+                                  </button>
+                                  <div
+                                      className="site-footer__social-item"
+                                      style={{ "--mobile-social-x": "-78px", "--mobile-social-y": "-8px" }}
+                                  >
+                                      <a
+                                          className="site-footer__social-pill site-footer__social-pill--github"
+                                          href="https://github.com/MJSEC-MJU"
+                                          aria-label="GitHub"
+                                          onClick={handleFooterSocialNavigate}
+                                      >
                                           <span className="site-footer__social-icon"><i className="fab fa-github"></i></span>
                                           <span className="site-footer__social-text">GitHub</span>
                                       </a>
                                   </div>
-                                  <div className="site-footer__social-item">
-                                      <a className="site-footer__social-pill site-footer__social-pill--instagram" href="https://www.instagram.com/mjsec_mju/" aria-label="Instagram">
+                                  <div
+                                      className="site-footer__social-item"
+                                      style={{ "--mobile-social-x": "-54px", "--mobile-social-y": "-64px" }}
+                                  >
+                                      <a
+                                          className="site-footer__social-pill site-footer__social-pill--instagram"
+                                          href="https://www.instagram.com/mjsec_mju/"
+                                          aria-label="Instagram"
+                                          onClick={handleFooterSocialNavigate}
+                                      >
                                           <span className="site-footer__social-icon"><i className="fab fa-instagram"></i></span>
                                           <span className="site-footer__social-text">Instagram</span>
                                       </a>
                                   </div>
-                                  <div className="site-footer__social-item">
+                                  <div
+                                      className="site-footer__social-item"
+                                      style={{ "--mobile-social-x": "0px", "--mobile-social-y": "-88px" }}
+                                  >
                                       <a
                                           className="site-footer__social-pill site-footer__social-pill--discord"
                                           href="#"
@@ -547,7 +597,9 @@ export default function App() {
                   <div id="page-end"></div>
       
           </div>
-          <div id="qr-fab" className="qr-fab" aria-label="Quick link widget"></div>
+          {!isMobileViewport ? (
+            <div id="qr-fab" className="qr-fab" aria-label="Quick link widget"></div>
+          ) : null}
     </>
   );
 }
