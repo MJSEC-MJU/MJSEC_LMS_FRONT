@@ -107,7 +107,7 @@ async function bootstrapLegacyScripts() {
     }
   });
 
-  await loadScript({ src: "/static/script-video.js?v=20260220a" });
+  await loadScript({ src: "/static/script-video.js?v=20260223b" });
 
   if (!isMobileViewportClient()) {
     await loadScript({ src: "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js" });
