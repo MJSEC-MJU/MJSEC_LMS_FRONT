@@ -37,7 +37,7 @@ const sequenceState = {
 
 const sequenceVideo = document.createElement("video");
 sequenceVideo.src = sequenceVideoSrc;
-sequenceVideo.preload = isMobileLiteMode ? "metadata" : "auto";
+sequenceVideo.preload = "auto";
 sequenceVideo.muted = true;
 sequenceVideo.playsInline = true;
 sequenceVideo.setAttribute("playsinline", "true");
@@ -53,26 +53,27 @@ document.body.appendChild(sequenceVideo);
 
 let renderRaf = null;
 let videoDuration = 0;
-let lastRenderedVideoTime = -1;
 let hasDrawnSequenceFrame = false;
 let sequenceVideoHasError = false;
-let targetVideoTime = 0;
-let desiredVideoTime = 0;
-let seekInFlight = false;
-let queuedSeekAfterCurrent = false;
 let cachedDrawLayout = null;
 let lastSequenceFramePaintAt = 0;
+let lastRenderedFrameIndex = -1;
+let sequenceFrameSnapshotSize = null;
 
-const SEEK_EPSILON = isMobileViewport ? (1 / 36) : (1 / 48);
-const DRAW_EPSILON = 1 / 240;
+const sequenceFrames = [];
+let sequenceFramesReady = false;
+let sequenceFramesLoading = false;
+let sequenceFramePreloadPromise = null;
+
 const MOBILE_SEQUENCE_FRAME_INTERVAL_MS = 1000 / 24;
-const BASE_MAX_SEEK_STEP = isMobileViewport ? 0.065 : 0.095;
-const BASE_TARGET_BLEND = isMobileViewport ? 0.5 : 0.64;
-const MAX_EXTRA_SEEK_STEP = isMobileViewport ? 0.08 : 0.12;
-const MAX_EXTRA_TARGET_BLEND = isMobileViewport ? 0.2 : 0.16;
-const HIGH_SCROLL_VELOCITY = isMobileViewport ? 2200 : 3200;
-const HARD_JUMP_THRESHOLD = isMobileViewport ? 0.22 : 0.28;
-let scrollVelocity = 0;
+const SEQUENCE_START_TIME = 0.08;
+const SEQUENCE_END_PADDING = 0.08;
+const SEQUENCE_TOTAL_FRAMES = shouldReduceMotion
+  ? (isMobileViewport ? 20 : 32)
+  : (isMobileLiteMode ? 28 : (isMobileViewport ? 42 : (isLowPerformanceDevice ? 54 : 72)));
+const SEQUENCE_SNAPSHOT_LONG_EDGE = shouldReduceMotion
+  ? 640
+  : (isMobileLiteMode ? 640 : (isLowPerformanceDevice ? 800 : 960));
 
 function resizeSequenceCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, maxCanvasDpr);
@@ -93,79 +94,161 @@ function clamp01(value) {
 }
 
 function isDrawableMedia(media) {
-  return Boolean(media && media.readyState >= 2 && media.videoWidth > 0 && media.videoHeight > 0);
-}
-
-function getTargetVideoTime() {
-  if (!Number.isFinite(videoDuration) || videoDuration <= 0) return 0;
-  const progress = clamp01(sequenceState.progress);
-  const maxSeekableTime = Math.max(videoDuration - (1 / 60), 0);
-  return Math.min(progress * videoDuration, maxSeekableTime);
+  if (!media) return false;
+  const sourceWidth = media.videoWidth || media.naturalWidth || media.width || 0;
+  const sourceHeight = media.videoHeight || media.naturalHeight || media.height || 0;
+  if (!sourceWidth || !sourceHeight) return false;
+  if (typeof media.readyState === "number") {
+    return media.readyState >= 2;
+  }
+  return true;
 }
 
 function invalidateDrawLayout() {
   cachedDrawLayout = null;
 }
 
-function getVelocityRatio() {
-  return clamp01(Math.abs(scrollVelocity) / HIGH_SCROLL_VELOCITY);
+function getSequenceFrameIndex() {
+  if (!sequenceFrames.length) return -1;
+  if (!sequenceFramesReady) return 0;
+  const progress = clamp01(sequenceState.progress);
+  return Math.max(0, Math.min(sequenceFrames.length - 1, Math.round(progress * (sequenceFrames.length - 1))));
 }
 
-function getAdaptiveMaxSeekStep() {
-  return BASE_MAX_SEEK_STEP + (MAX_EXTRA_SEEK_STEP * getVelocityRatio());
+function waitForVideoEvent(videoEl, eventName) {
+  return new Promise((resolve, reject) => {
+    const onResolve = () => {
+      cleanup();
+      resolve();
+    };
+    const onReject = () => {
+      cleanup();
+      reject(videoEl.error || new Error(`Sequence video failed during ${eventName}`));
+    };
+    const cleanup = () => {
+      videoEl.removeEventListener(eventName, onResolve);
+      videoEl.removeEventListener("error", onReject);
+    };
+    videoEl.addEventListener(eventName, onResolve, { once: true });
+    videoEl.addEventListener("error", onReject, { once: true });
+  });
 }
 
-function getAdaptiveBlend() {
-  return Math.min(0.92, BASE_TARGET_BLEND + (MAX_EXTRA_TARGET_BLEND * getVelocityRatio()));
-}
-
-function requestSeekToTarget(force = false) {
-  if (!videoDuration) return;
-  if (sequenceVideoHasError) return;
-
-  if (seekInFlight && !force) {
-    queuedSeekAfterCurrent = true;
-    return;
+async function ensureSequenceVideoReady() {
+  if (sequenceVideo.readyState < 1) {
+    const metadataReady = waitForVideoEvent(sequenceVideo, "loadedmetadata");
+    sequenceVideo.load();
+    await metadataReady;
   }
 
-  let nextSeekTime = targetVideoTime;
-  const currentTime = Number.isFinite(sequenceVideo.currentTime) ? sequenceVideo.currentTime : 0;
+  if (sequenceVideo.readyState < 2) {
+    const dataReady = waitForVideoEvent(sequenceVideo, "loadeddata");
+    sequenceVideo.load();
+    await dataReady;
+  }
 
-  if (!force) {
-    const delta = nextSeekTime - currentTime;
-    const absDelta = Math.abs(delta);
-    if (absDelta >= HARD_JUMP_THRESHOLD) {
-      nextSeekTime = targetVideoTime;
-    } else {
-      const maxSeekStep = getAdaptiveMaxSeekStep();
-      if (absDelta > maxSeekStep) {
-        nextSeekTime = currentTime + (Math.sign(delta) * maxSeekStep);
+  videoDuration = Number.isFinite(sequenceVideo.duration) ? sequenceVideo.duration : 0;
+  if (!Number.isFinite(videoDuration) || videoDuration <= 0) {
+    throw new Error("Sequence video metadata is invalid.");
+  }
+}
+
+function getSequenceSnapshotSize() {
+  if (sequenceFrameSnapshotSize) return sequenceFrameSnapshotSize;
+
+  const sourceWidth = Math.max(1, sequenceVideo.videoWidth || 1);
+  const sourceHeight = Math.max(1, sequenceVideo.videoHeight || 1);
+  const sourceLongEdge = Math.max(sourceWidth, sourceHeight);
+  const sourceScale = Math.min(1, SEQUENCE_SNAPSHOT_LONG_EDGE / sourceLongEdge);
+
+  const dpr = Math.min(window.devicePixelRatio || 1, maxCanvasDpr);
+  const viewportTargetWidth = Math.max(1, Math.round(window.innerWidth * Math.min(dpr, 1.15)));
+  const viewportTargetHeight = Math.max(1, Math.round(window.innerHeight * Math.min(dpr, 1.15)));
+  const viewportScale = Math.min(1, viewportTargetWidth / sourceWidth, viewportTargetHeight / sourceHeight);
+  const scale = Math.min(1, sourceScale, viewportScale);
+
+  sequenceFrameSnapshotSize = {
+    width: Math.max(1, Math.round(sourceWidth * scale)),
+    height: Math.max(1, Math.round(sourceHeight * scale)),
+  };
+  return sequenceFrameSnapshotSize;
+}
+
+function seekSequenceVideo(time) {
+  return new Promise((resolve, reject) => {
+    const onSeeked = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(sequenceVideo.error || new Error("Sequence seek failed"));
+    };
+    const cleanup = () => {
+      sequenceVideo.removeEventListener("seeked", onSeeked);
+      sequenceVideo.removeEventListener("error", onError);
+    };
+
+    sequenceVideo.addEventListener("seeked", onSeeked, { once: true });
+    sequenceVideo.addEventListener("error", onError, { once: true });
+
+    try {
+      sequenceVideo.currentTime = time;
+    } catch (err) {
+      cleanup();
+      reject(err);
+    }
+  });
+}
+
+function captureSequenceFrame() {
+  const { width, height } = getSequenceSnapshotSize();
+  const frameCanvas = document.createElement("canvas");
+  frameCanvas.width = width;
+  frameCanvas.height = height;
+  const frameCtx = frameCanvas.getContext("2d", { alpha: false }) || frameCanvas.getContext("2d");
+  frameCtx.drawImage(sequenceVideo, 0, 0, width, height);
+  return frameCanvas;
+}
+
+async function preloadSequenceFrames() {
+  if (sequenceFramesReady) return;
+  if (sequenceFramesLoading && sequenceFramePreloadPromise) return sequenceFramePreloadPromise;
+
+  sequenceFramesLoading = true;
+  sequenceFramePreloadPromise = (async () => {
+    await ensureSequenceVideoReady();
+
+    const safeStart = Math.min(SEQUENCE_START_TIME, Math.max(0, videoDuration - SEQUENCE_END_PADDING));
+    const safeEnd = Math.max(safeStart, videoDuration - SEQUENCE_END_PADDING);
+    const denom = Math.max(1, SEQUENCE_TOTAL_FRAMES - 1);
+
+    for (let i = 0; i < SEQUENCE_TOTAL_FRAMES; i += 1) {
+      const t = safeStart + ((safeEnd - safeStart) * (i / denom));
+      await seekSequenceVideo(t);
+      sequenceFrames.push(captureSequenceFrame());
+
+      if (i === 0) {
+        queueRender(true);
+      } else if ((i + 1) % 8 === 0) {
+        queueRender();
       }
     }
-  }
 
-  if (!force && Math.abs(currentTime - nextSeekTime) < SEEK_EPSILON) {
-    return;
-  }
+    sequenceFramesReady = true;
+    sequenceFramesLoading = false;
+    hasDrawnSequenceFrame = false;
+    lastRenderedFrameIndex = -1;
+    queueRender(true);
+  })().catch((err) => {
+    sequenceFramesLoading = false;
+    sequenceVideoHasError = true;
+    console.error("[sequence] frame preload failed", err);
+    queueRender(true);
+    throw err;
+  });
 
-  seekInFlight = true;
-  queuedSeekAfterCurrent = false;
-  try {
-    sequenceVideo.currentTime = nextSeekTime;
-  } catch (err) {
-    seekInFlight = false;
-    // Ignore transient seek errors while metadata is stabilizing.
-  }
-}
-
-function syncVideoToProgress(force = false) {
-  desiredVideoTime = getTargetVideoTime();
-  if (force) {
-    targetVideoTime = desiredVideoTime;
-  } else {
-    targetVideoTime += (desiredVideoTime - targetVideoTime) * getAdaptiveBlend();
-  }
-  requestSeekToTarget(force);
+  return sequenceFramePreloadPromise;
 }
 
 function queueRender(force = false) {
@@ -187,69 +270,28 @@ gsap.to(sequenceState, {
     start: `top top`,
     end: sequenceScrollEnd,
     onRefresh: () => {
-      syncVideoToProgress(true);
       queueRender(true);
     },
-    onUpdate: (self) => {
-      scrollVelocity = self.getVelocity();
-      syncVideoToProgress();
+    onUpdate: () => {
+      queueRender();
     },
   },
 });
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
-    syncVideoToProgress(true);
     queueRender(true);
-  }
-});
-
-sequenceVideo.addEventListener("loadedmetadata", () => {
-  videoDuration = Number.isFinite(sequenceVideo.duration) ? sequenceVideo.duration : 0;
-  sequenceVideoHasError = false;
-  seekInFlight = false;
-  queuedSeekAfterCurrent = false;
-  syncVideoToProgress(true);
-  queueRender(true);
-});
-
-sequenceVideo.addEventListener("loadeddata", () => {
-  sequenceVideoHasError = false;
-  queueRender(true);
-});
-
-if (!isMobileLiteMode && typeof sequenceVideo.requestVideoFrameCallback === "function") {
-  const pumpVideoFrames = () => {
-    sequenceVideo.requestVideoFrameCallback(() => {
-      queueRender();
-      pumpVideoFrames();
-    });
-  };
-  pumpVideoFrames();
-}
-
-sequenceVideo.addEventListener("seeked", () => {
-  seekInFlight = false;
-  queueRender(true);
-
-  if (
-    queuedSeekAfterCurrent ||
-    Math.abs(sequenceVideo.currentTime - targetVideoTime) >= SEEK_EPSILON ||
-    Math.abs(targetVideoTime - desiredVideoTime) >= SEEK_EPSILON
-  ) {
-    syncVideoToProgress();
   }
 });
 
 sequenceVideo.addEventListener("error", () => {
   sequenceVideoHasError = true;
-  seekInFlight = false;
-  queuedSeekAfterCurrent = false;
   context.clearRect(0, 0, canvas.width, canvas.height);
-  lastRenderedVideoTime = -1;
+  lastRenderedFrameIndex = -1;
   hasDrawnSequenceFrame = false;
 });
 
 sequenceVideo.load();
+preloadSequenceFrames().catch(() => {});
 
 function render(forceFrameDraw = false) {
   const now = performance.now();
@@ -259,17 +301,19 @@ function render(forceFrameDraw = false) {
     || (now - lastSequenceFramePaintAt) >= MOBILE_SEQUENCE_FRAME_INTERVAL_MS;
 
   if (canPaintSequenceFrame) {
-    if (isDrawableMedia(sequenceVideo)) {
-      const currentTime = Number.isFinite(sequenceVideo.currentTime) ? sequenceVideo.currentTime : 0;
-      if (forceFrameDraw || Math.abs(currentTime - lastRenderedVideoTime) > DRAW_EPSILON) {
-        scaleMedia(sequenceVideo, context);
-        lastRenderedVideoTime = currentTime;
+    const frameIndex = getSequenceFrameIndex();
+    const frame = frameIndex >= 0 ? sequenceFrames[frameIndex] : null;
+
+    if (frame && isDrawableMedia(frame)) {
+      if (forceFrameDraw || frameIndex !== lastRenderedFrameIndex) {
+        scaleMedia(frame, context);
+        lastRenderedFrameIndex = frameIndex;
         hasDrawnSequenceFrame = true;
         lastSequenceFramePaintAt = now;
       }
     } else if (sequenceVideoHasError || !hasDrawnSequenceFrame) {
       context.clearRect(0, 0, canvas.width, canvas.height);
-      lastRenderedVideoTime = -1;
+      lastRenderedFrameIndex = -1;
       lastSequenceFramePaintAt = now;
     }
   }
