@@ -234,7 +234,6 @@ async function preloadSequenceFrames() {
         queueRender();
       }
     }
-
     sequenceFramesReady = true;
     sequenceFramesLoading = false;
     hasDrawnSequenceFrame = false;
