@@ -107,7 +107,7 @@ async function bootstrapLegacyScripts() {
     }
   });
 
-  await loadScript({ src: "/static/script-video.js?v=20260223b" });
+  await loadScript({ src: "/static/script-video.js?v=20260224d" });
 
   if (!isMobileViewportClient()) {
     await loadScript({ src: "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js" });
@@ -174,6 +174,9 @@ export default function App() {
           <div id="main">
               <div id="page">
                   <canvas></canvas>
+                  <div className="sequence-mobile-poster" aria-hidden="true">
+                      <div className="sequence-mobile-poster__bg"></div>
+                  </div>
                   <div className="sequence-intro-title" aria-hidden="true">MJSEC</div>
               </div>
                   <section id="space-approach" className="space-approach" aria-label="Immersive cards section">
@@ -525,13 +528,13 @@ export default function App() {
                                       <h3>president</h3>
                                       <p>name: 이윤태</p>
                                       <p>num: 010-1234-5678</p>
-                                      <p>email: yoont1016@gmail.com</p>
+                                      <p className="site-footer__email">email: yoont1016@gmail.com</p>
                                   </article>
                                   <article className="site-footer__leader">
                                       <h3>vice</h3>
                                       <p>name: 최윤호</p>
                                       <p>num: 010‑3023‑4192</p>
-                                      <p>email: gdool88@gmail.com</p>
+                                      <p className="site-footer__email">email: gdool88@gmail.com</p>
                                   </article>
                               </div>
                               <div

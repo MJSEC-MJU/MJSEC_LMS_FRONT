@@ -20,12 +20,33 @@ body{
     height: 100dvh;
     width: 100vw;
     background-color: transparent;
+    overflow: hidden;
 }
 
 #page canvas {
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.sequence-mobile-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: none;
+  pointer-events: none;
+  overflow: hidden;
+  background: #000;
+}
+
+.sequence-mobile-poster__bg {
+  position: absolute;
+  inset: 0;
+  background: #000 url("/static/images/192.webp") center center / cover no-repeat;
+}
+
+.sequence-mobile-poster__bg::after {
+  display: none;
 }
 
 .sequence-intro-title {
@@ -1610,6 +1631,22 @@ main section:last-of-type:not(:first-of-type) {
 }
 
 @media (max-width: 768px) {
+  html.sequence-static-poster-mode #page {
+    height: 100svh;
+  }
+
+  html.sequence-static-poster-mode #page canvas {
+    display: none !important;
+  }
+
+  html.sequence-static-poster-mode .sequence-intro-title {
+    display: none !important;
+  }
+
+  html.sequence-static-poster-mode .sequence-mobile-poster {
+    display: block;
+  }
+
   .post-sequence-space {
     height: 100svh;
     min-height: 100svh;
@@ -1995,9 +2032,9 @@ html.is-mobile-lite .qna-grid .qna-neon-card .social-glow-layer-2 {
   }
 
   html.is-mobile-lite .site-footer__inner {
-    row-gap: 14px;
+    row-gap: 10px;
     overflow: visible;
-    padding-bottom: 74px;
+    padding-bottom: 62px;
   }
 
   html.is-mobile-lite .site-footer__social {
@@ -2123,5 +2160,22 @@ html.is-mobile-lite .qna-grid .qna-neon-card .social-glow-layer-2 {
     line-height: 1.35;
     margin-top: 2px;
     padding-top: 8px;
+  }
+
+  html.is-mobile-lite .site-footer__leader {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  html.is-mobile-lite .site-footer__leader h3 {
+    margin-bottom: 3px;
+  }
+
+  html.is-mobile-lite .site-footer__leader p {
+    margin: 1px 0;
+  }
+
+  html.is-mobile-lite .site-footer__email {
+    display: none !important;
   }
 }
