@@ -447,6 +447,8 @@ export default function TimelineDesign() {
                         key={`${item.id}-tile-${index}`}
                         className={className}
                         style={style}
+                        data-item-id={item.id}
+                        data-tile-index={String(index)}
                         data-depth={tile.depth ?? 0}
                         data-tile-type={tile.type}
                       >
@@ -462,13 +464,15 @@ export default function TimelineDesign() {
                   if (tile.type === "video") {
                     const mediaType = tile.src?.endsWith(".webm") ? "video/webm" : "video/mp4";
                     return (
-                      <div
-                        key={`${item.id}-tile-${index}`}
-                        className={className}
-                        style={style}
-                        data-depth={tile.depth ?? 0}
-                        data-tile-type={tile.type}
-                      >
+                        <div
+                          key={`${item.id}-tile-${index}`}
+                          className={className}
+                          style={style}
+                          data-item-id={item.id}
+                          data-tile-index={String(index)}
+                          data-depth={tile.depth ?? 0}
+                          data-tile-type={tile.type}
+                        >
                         <div className="gh-tile__box">
                           <video
                             className="gh-tile__media"
@@ -492,6 +496,8 @@ export default function TimelineDesign() {
                       key={`${item.id}-tile-${index}`}
                       className={className}
                       style={style}
+                      data-item-id={item.id}
+                      data-tile-index={String(index)}
                       data-depth={tile.depth ?? 0}
                       data-tile-type={tile.type}
                     >
@@ -523,7 +529,7 @@ export default function TimelineDesign() {
       <div className="gh-years-layer" aria-hidden="true">
         <div className="gh-years-wrapper" data-timeline="years-wrapper">
           {TIMELINE_ITEMS.map((item) => (
-            <div key={`year-${item.id}`} className="gh-year" data-timeline="year">
+            <div key={`year-${item.id}`} className="gh-year" data-timeline="year" data-year-value={item.year}>
               {String(item.year).split("").map((ch, index) => (
                 <span key={`year-${item.id}-${index}`} className="gh-char">
                   {ch}

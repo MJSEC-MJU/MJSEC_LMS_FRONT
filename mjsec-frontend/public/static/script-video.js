@@ -30,14 +30,22 @@ const sequenceVideoSrc = prefersHighQualitySource
   : "/static/videos/upscaled-video-scrub.mp4";
 const sequenceScrub = isMobileLiteMode ? 0.68 : (isMobileViewport ? 0.52 : 0.4);
 const maxCanvasDpr = isMobileLiteMode ? 1 : (isMobileViewport ? 1.25 : 2);
+const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches || window.matchMedia("(hover: none)").matches;
+const useStaticSequencePoster = isMobileLiteMode && hasCoarsePointer;
+document.documentElement.classList.toggle("sequence-static-poster-mode", useStaticSequencePoster);
+if (document.body) {
+  document.body.classList.toggle("sequence-static-poster-mode", useStaticSequencePoster);
+}
 
 const sequenceState = {
   progress: 0,
 };
 
 const sequenceVideo = document.createElement("video");
-sequenceVideo.src = sequenceVideoSrc;
-sequenceVideo.preload = "auto";
+if (!useStaticSequencePoster) {
+  sequenceVideo.src = sequenceVideoSrc;
+}
+sequenceVideo.preload = useStaticSequencePoster ? "none" : "auto";
 sequenceVideo.muted = true;
 sequenceVideo.playsInline = true;
 sequenceVideo.setAttribute("playsinline", "true");
@@ -64,16 +72,17 @@ const sequenceFrames = [];
 let sequenceFramesReady = false;
 let sequenceFramesLoading = false;
 let sequenceFramePreloadPromise = null;
+let sequencePreloadScheduled = false;
 
 const MOBILE_SEQUENCE_FRAME_INTERVAL_MS = 1000 / 24;
 const SEQUENCE_START_TIME = 0.08;
 const SEQUENCE_END_PADDING = 0.08;
 const SEQUENCE_TOTAL_FRAMES = shouldReduceMotion
-  ? (isMobileViewport ? 20 : 32)
-  : (isMobileLiteMode ? 28 : (isMobileViewport ? 42 : (isLowPerformanceDevice ? 54 : 72)));
+  ? (isMobileViewport ? 10 : 24)
+  : (isMobileLiteMode ? 14 : (isMobileViewport ? 28 : (isLowPerformanceDevice ? 42 : 72)));
 const SEQUENCE_SNAPSHOT_LONG_EDGE = shouldReduceMotion
-  ? 640
-  : (isMobileLiteMode ? 640 : (isLowPerformanceDevice ? 800 : 960));
+  ? 420
+  : (isMobileLiteMode ? 480 : (isLowPerformanceDevice ? 720 : 960));
 
 function resizeSequenceCanvas() {
   const dpr = Math.min(window.devicePixelRatio || 1, maxCanvasDpr);
@@ -91,6 +100,14 @@ window.addEventListener("resize", function () {
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
+}
+
+function nextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
+function nextTask() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function isDrawableMedia(media) {
@@ -233,11 +250,30 @@ async function preloadSequenceFrames() {
       } else if ((i + 1) % 8 === 0) {
         queueRender();
       }
+
+      // Prevent long tasks on mobile while extracting frames.
+      if (isMobileLiteMode) {
+        await nextFrame();
+        if ((i + 1) % 3 === 0) {
+          await nextTask();
+        }
+      } else if ((i + 1) % 10 === 0) {
+        await nextFrame();
+      }
     }
     sequenceFramesReady = true;
     sequenceFramesLoading = false;
     hasDrawnSequenceFrame = false;
     lastRenderedFrameIndex = -1;
+    if (isMobileLiteMode) {
+      try {
+        sequenceVideo.pause();
+        sequenceVideo.removeAttribute("src");
+        sequenceVideo.load();
+      } catch (err) {
+        // Ignore cleanup issues on constrained browsers.
+      }
+    }
     queueRender(true);
   })().catch((err) => {
     sequenceFramesLoading = false;
@@ -250,6 +286,28 @@ async function preloadSequenceFrames() {
   return sequenceFramePreloadPromise;
 }
 
+function scheduleSequenceFramePreload() {
+  if (sequencePreloadScheduled) return;
+  if (useStaticSequencePoster) return;
+  sequencePreloadScheduled = true;
+
+  const start = () => {
+    preloadSequenceFrames().catch(() => {});
+  };
+
+  if (isMobileLiteMode) {
+    // Allow first paint and initial input to settle before frame extraction.
+    setTimeout(start, 250);
+    return;
+  }
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => start(), { timeout: 1200 });
+  } else {
+    setTimeout(start, 0);
+  }
+}
+
 function queueRender(force = false) {
   if (renderRaf !== null && !force) return;
   if (renderRaf !== null) cancelAnimationFrame(renderRaf);
@@ -260,22 +318,24 @@ function queueRender(force = false) {
   });
 }
 
-gsap.to(sequenceState, {
-  progress: 1,
-  ease: "none",
-  scrollTrigger: {
-    scrub: sequenceScrub,
-    trigger: `#page`,
-    start: `top top`,
-    end: sequenceScrollEnd,
-    onRefresh: () => {
-      queueRender(true);
+if (!useStaticSequencePoster) {
+  gsap.to(sequenceState, {
+    progress: 1,
+    ease: "none",
+    scrollTrigger: {
+      scrub: sequenceScrub,
+      trigger: `#page`,
+      start: `top top`,
+      end: sequenceScrollEnd,
+      onRefresh: () => {
+        queueRender(true);
+      },
+      onUpdate: () => {
+        queueRender();
+      },
     },
-    onUpdate: () => {
-      queueRender();
-    },
-  },
-});
+  });
+}
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     queueRender(true);
@@ -289,8 +349,10 @@ sequenceVideo.addEventListener("error", () => {
   hasDrawnSequenceFrame = false;
 });
 
-sequenceVideo.load();
-preloadSequenceFrames().catch(() => {});
+if (!useStaticSequencePoster) {
+  sequenceVideo.load();
+  scheduleSequenceFramePreload();
+}
 
 function render(forceFrameDraw = false) {
   const now = performance.now();
@@ -299,7 +361,7 @@ function render(forceFrameDraw = false) {
     || !isMobileLiteMode
     || (now - lastSequenceFramePaintAt) >= MOBILE_SEQUENCE_FRAME_INTERVAL_MS;
 
-  if (canPaintSequenceFrame) {
+  if (!useStaticSequencePoster && canPaintSequenceFrame) {
     const frameIndex = getSequenceFrameIndex();
     const frame = frameIndex >= 0 ? sequenceFrames[frameIndex] : null;
 
@@ -381,12 +443,14 @@ function scaleMedia(media, ctx) {
 }
 
 
-ScrollTrigger.create({
-  trigger:"#page",
-  pin: true,
-  start: `top top`,
-  end: sequenceScrollEnd
-});
+if (!useStaticSequencePoster) {
+  ScrollTrigger.create({
+    trigger:"#page",
+    pin: true,
+    start: `top top`,
+    end: sequenceScrollEnd
+  });
+}
 
 initHamburgerMenu();
 initDotNavSmoothScroll();

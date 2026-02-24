@@ -289,6 +289,22 @@
     align-items: center;
     justify-content: center;
   }
+
+  .gh-year[data-year-value="2024"] {
+    transform: translateY(-56%);
+  }
+
+  .gh-tile[data-item-id="FOUNDING_2024"][data-tile-type="text"] {
+    bottom: 25%;
+    right: 1%;
+    width: min(82vw, 360px);
+  }
+
+  .gh-tile[data-item-id="EXPANSION_2025"][data-tile-index="1"] {
+    width: clamp(200px, 31vw, 170px);
+    right: 2%;
+    bottom: 8%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
