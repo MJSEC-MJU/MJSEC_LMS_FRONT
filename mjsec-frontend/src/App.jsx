@@ -4,10 +4,63 @@ import IntroSection from "./components/IntroSection.jsx";
 
 const scriptLoadPromises = new Map();
 const INTRO_PREF_KEY = "mjsec:intro";
+const GALLERY_LAYERS = [
+  [
+    "/static/images/image-12.webp",
+    "/static/images/image-2.webp",
+    "/static/images/image-3.webp",
+    "/static/images/image-4.webp",
+    "/static/images/image-5.webp",
+    "/static/images/image-6.webp",
+  ],
+  [
+    "/static/images/image-7.webp",
+    "/static/images/image-8.webp",
+    "/static/images/image-9.webp",
+    "/static/images/image-10.webp",
+    "/static/images/image-11.webp",
+    "/static/images/image-13.webp",
+  ],
+  [
+    "/static/images/image-14.webp",
+    "/static/images/image-15.webp",
+  ],
+];
+const GALLERY_HERO_IMAGE = "/static/images/image-1.webp";
 
 function isMobileViewportClient() {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(max-width: 768px)").matches;
+}
+
+function getClientDeviceProfile() {
+  if (typeof window === "undefined") {
+    return {
+      isMobileViewport: false,
+      prefersReducedMotion: false,
+      saveDataEnabled: false,
+      hardwareThreads: 0,
+      deviceMemoryGb: 0,
+    };
+  }
+
+  const networkInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+  return {
+    isMobileViewport: isMobileViewportClient(),
+    prefersReducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false,
+    saveDataEnabled: Boolean(networkInfo?.saveData),
+    hardwareThreads: Number(navigator.hardwareConcurrency || 0),
+    deviceMemoryGb: Number(navigator.deviceMemory || 0),
+  };
+}
+
+function shouldEnableQrWidget() {
+  const profile = getClientDeviceProfile();
+  if (profile.isMobileViewport || profile.prefersReducedMotion || profile.saveDataEnabled) return false;
+  if (profile.deviceMemoryGb > 0 && profile.deviceMemoryGb < 8) return false;
+  if (profile.hardwareThreads > 0 && profile.hardwareThreads < 8) return false;
+  return true;
 }
 
 function readIntroPreference() {
@@ -88,6 +141,28 @@ function loadScript({ src, type = "text/javascript", attrs = {} }) {
   return promise;
 }
 
+function loadDesktopQrWidget() {
+  const start = async () => {
+    try {
+      await loadScript({ src: "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js" });
+      await loadScript({ src: "/static/qr-widget.js?v=20260410a", type: "module" });
+    } catch (error) {
+      console.error("[App] Failed to initialize QR widget.", error);
+    }
+  };
+
+  if (typeof window !== "undefined" && typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => {
+      start();
+    }, { timeout: 2500 });
+    return;
+  }
+
+  setTimeout(() => {
+    start();
+  }, 1200);
+}
+
 async function bootstrapLegacyScripts() {
   await loadScript({
     src: "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js",
@@ -107,12 +182,23 @@ async function bootstrapLegacyScripts() {
     }
   });
 
-  await loadScript({ src: "/static/script-video.js?v=20260224d" });
+  await loadScript({ src: "/static/script-video.js?v=20260410a" });
 
-  if (!isMobileViewportClient()) {
-    await loadScript({ src: "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js" });
-    await loadScript({ src: "/static/qr-widget.js", type: "module" });
+  if (shouldEnableQrWidget()) {
+    loadDesktopQrWidget();
   }
+}
+
+function GalleryImage({ src, alt = "", loading = "lazy", fetchPriority = "low" }) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading={loading}
+      decoding="async"
+      fetchPriority={fetchPriority}
+    />
+  );
 }
 
 export default function App() {
@@ -300,28 +386,27 @@ export default function App() {
                           <section id="gallery-fullscreen" className="gallery-scroll-stage">
                               <div className="content">
                                   <div className="grid">
-                                      <div className="layer">
-                                          <div><img src="/static/images/image-12.jpeg" alt="" /></div>
-                                          <div><img src="/static/images/image-2.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-3.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-4.jpeg" alt="" /></div>
-                                          <div><img src="/static/images/image-5.jpeg" alt="" /></div>
-                                          <div><img src="/static/images/image-6.jpg" alt="" /></div>
-                                      </div>
-                                      <div className="layer">
-                                          <div><img src="/static/images/image-7.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-8.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-9.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-10.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-11.jpg" alt="" /></div>
-                                          <div><img src="/static/images/image-13.jpeg" alt="" /></div>
-                                      </div>
-                                      <div className="layer">
-                                          <div><img src="/static/images/image-14.png" alt="" /></div>
-                                          <div><img src="/static/images/image-15.png" alt="" /></div>
-                                      </div>
+                                      {GALLERY_LAYERS.map((layer, layerIndex) => (
+                                        <div className="layer" key={`gallery-layer-${layerIndex + 1}`}>
+                                          {layer.map((src, imageIndex) => (
+                                            <div key={src}>
+                                              <GalleryImage
+                                                src={src}
+                                                alt=""
+                                                loading={layerIndex === 0 && imageIndex === 0 ? "eager" : "lazy"}
+                                                fetchPriority={layerIndex === 0 && imageIndex === 0 ? "auto" : "low"}
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ))}
                                       <div className="scaler">
-                                          <img src="/static/images/image-1.jpg" alt="" />
+                                          <GalleryImage
+                                            src={GALLERY_HERO_IMAGE}
+                                            alt=""
+                                            loading="eager"
+                                            fetchPriority="high"
+                                          />
                                       </div>
                                   </div>
                               </div>
@@ -527,7 +612,7 @@ export default function App() {
                                   <article className="site-footer__leader">
                                       <h3>president</h3>
                                       <p>name: 이윤태</p>
-                                      <p>num: 010-1234-5678</p>
+                                      <p>num: 010-9755-3453</p>
                                       <p className="site-footer__email">email: yoont1016@gmail.com</p>
                                   </article>
                                   <article className="site-footer__leader">
@@ -606,7 +691,5 @@ export default function App() {
     </>
   );
 }
-
-
 
 
