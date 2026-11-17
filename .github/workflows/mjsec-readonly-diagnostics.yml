@@ -7,7 +7,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 6
     env:
       SSH_HOST: ${{ secrets.HOST }}
       SSH_USER: ${{ secrets.USER }}
@@ -26,28 +26,15 @@ jobs:
           mkdir -m 700 "$RUNNER_TEMP/diagnostic"
           ssh-keyscan -T 8 -t ed25519 -p "$SSH_PORT" "$SSH_HOST" > "$RUNNER_TEMP/known-hosts" 2>/dev/null
           [[ $(ssh-keygen -lf "$RUNNER_TEMP/known-hosts" | awk '{print $2}') == 'SHA256:7+/z32wOTUDLksud67Wvir5GHU6k1vOW7g+SwnF+e0w' ]]
+          payload="$RUNNER_TEMP/followup.sh"
+          {
+            cat ops/incident-20261117/verify-contained.sh
+            printf "\nunset TZ\npython3 - <<'AUTH_FOLLOWUP_PY'\n"
+            cat ops/incident-20261117/auth-followup.py
+            printf '\nAUTH_FOLLOWUP_PY\nauth_rc=$?\nif [[ "$auth_rc" != 0 ]]; then exit "$auth_rc"; fi\nexit "$VERIFY_FAILURE"\n'
+          } > "$payload"
           set +e
-          timeout -k 5 65 ssh -v -F /dev/null -o BatchMode=yes -o ConnectTimeout=8 -o ConnectionAttempts=1 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/known-hosts" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash -s' > "$RUNNER_TEMP/diagnostic/stdout.txt" 2> "$RUNNER_TEMP/diagnostic/stderr.txt" <<'REMOTE'
-          set +e
-          printf 'DIAGNOSTIC_START\n'
-          date -u +%FT%TZ
-          id
-          uname -srmo
-          uptime
-          ps -eo user,pid,ppid,etimes,comm,wchan:28 --forest
-          timeout 4 ss -H -lntup
-          printf 'DOCKER_CONTEXT\n'
-          timeout 5 docker context show
-          printf 'DOCKER_INFO\n'
-          timeout -k 1 8 docker info --format 'server={{.ServerVersion}} name={{.Name}}'
-          printf 'DOCKER_INFO_RC=%s\n' "$?"
-          timeout -k 1 8 docker ps -a --format '{{.ID}} {{.Names}} {{.Image}} {{.Status}} {{.Ports}}'
-          printf 'DOCKER_PS_RC=%s\n' "$?"
-          timeout -k 1 4 sudo -n true
-          printf 'SUDO_RC=%s\n' "$?"
-          ls -ld /srv/mjsec /srv/mjsec/docker-compose.prod.yaml /srv/mjsec/nginx/default.conf.template
-          printf 'DIAGNOSTIC_END\n'
-          REMOTE
+          timeout -k 5 260 ssh -v -F /dev/null -o BatchMode=yes -o ConnectTimeout=8 -o ConnectionAttempts=1 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/known-hosts" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash -s' < "$payload" > "$RUNNER_TEMP/diagnostic/stdout.txt" 2> "$RUNNER_TEMP/diagnostic/stderr.txt"
           rc=$?
           set -e
           printf '%s\n' "$rc" > "$RUNNER_TEMP/diagnostic/exit.txt"
