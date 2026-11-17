@@ -17,12 +17,12 @@ active_changed=0
 stop_started=0
 host_priv=()
 docker_cmd=(docker)
-if ! docker info >/dev/null 2>&1; then
-  sudo -n docker info >/dev/null
+if ! timeout -k 1 8 docker ps -q >/dev/null 2>&1; then
+  timeout -k 1 8 sudo -n docker ps -q >/dev/null
   docker_cmd=(sudo -n docker)
 fi
 if sudo -n true 2>/dev/null; then host_priv=(sudo -n); fi
-d() { "${docker_cmd[@]}" "$@"; }
+d() { timeout -k 2 35 "${docker_cmd[@]}" "$@"; }
 dc() { d compose --project-directory "$root" -f "$compose_file" "$@"; }
 test -r "$compose_file"
 test -f "$template" && test ! -L "$template"
@@ -71,7 +71,7 @@ restore_template() {
 collect_history() {
   printf '\n=== READ_ONLY_HISTORY phase=%s ===\n' "$phase"
   # Keep the complete stdout private on the runner; only encrypted evidence is uploaded.
-  timeout 240 bash "$backup/collect-readonly.sh" || printf 'COLLECTION_INCOMPLETE rc=%s\n' "$?"
+  timeout -k 2 180 bash "$backup/collect-readonly.sh" || printf 'COLLECTION_INCOMPLETE rc=%s\n' "$?"
 }
 on_error() {
   local rc=${1:-$?}
@@ -109,14 +109,22 @@ for id in "$back" "$front" "$nginx"; do
 done
 d top "$back" -eo pid,ppid,user,lstart,comm || true
 d exec "$back" sh -c 'if [ -r /opt/java/openjdk/release ]; then grep -E "^(JAVA_VERSION|JAVA_RUNTIME_VERSION|IMPLEMENTOR|OS_NAME|OS_ARCH)=" /opt/java/openjdk/release; fi' || true
-d logs --timestamps --tail 1000 "$back" 2>&1 || true
+d logs --timestamps --tail 200 "$back" 2>&1 || true
 d exec "$nginx" nginx -T > "$backup/nginx-full.before" 2>&1
 d cp "$nginx:$active" "$backup/active.before"
 "${host_priv[@]}" cp -p "$template" "$backup/template.before"
 
 http_code() {
   local domain=$1 path=$2
-  curl --noproxy '*' --silent --show-error --connect-timeout 3 --max-time 10 --resolve "$domain:443:127.0.0.1" -o /dev/null -w '%{http_code}' "https://$domain$path"
+  # The host's published-port loopback is unavailable on this server. Probe the
+  # same nginx instance from its own network namespace, without auth or data.
+  d exec "$nginx" sh -c '
+    if command -v curl >/dev/null 2>&1; then
+      curl --insecure --noproxy "*" --silent --show-error --connect-timeout 3 --max-time 8 --resolve "$1:443:127.0.0.1" -o /dev/null -w "%{http_code}" "https://$1$2"
+    else
+      wget -T 8 -S --no-check-certificate -O /dev/null --header "Host: $1" "https://127.0.0.1$2" 2>&1 |
+        awk '\''/^[[:space:]]*HTTP\/[0-9.]+/ {code=$2} END {if (code) print code; else exit 1}'\''
+    fi' sh "$domain" "$path"
 }
 home_before=$(http_code mjsec.kr /)
 wiki_before=$(http_code wiki.mjsec.kr /)
