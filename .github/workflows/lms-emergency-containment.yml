@@ -1,0 +1,73 @@
+name: Temporary LMS containment 20261117
+
+on:
+  push:
+    branches: [codex/lms-emergency-containment-20261117]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lms-emergency-containment-20261117
+  cancel-in-progress: false
+
+jobs:
+  contain-and-preserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SSH_HOST: ${{ secrets.HOST }}
+      SSH_USER: ${{ secrets.USER }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the authorized endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SSH_HOST" == '14.42.48.191' || "$SSH_HOST" == 'mjsec.kr' ]]
+          [[ "$SSH_PORT" == 2222 && -n "$SSH_USER" ]]
+          mkdir -p "$RUNNER_TEMP/mjsec-evidence"
+          chmod 700 "$RUNNER_TEMP/mjsec-evidence"
+          ssh-keyscan -T 10 -t ed25519 -p "$SSH_PORT" "$SSH_HOST" > "$RUNNER_TEMP/mjsec-known-hosts" 2>/dev/null
+          [[ $(ssh-keygen -lf "$RUNNER_TEMP/mjsec-known-hosts" | awk '{print $2}') == 'SHA256:7+/z32wOTUDLksud67Wvir5GHU6k1vOW7g+SwnF+e0w' ]]
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+      - name: Preserve evidence and temporarily contain only LMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload="$RUNNER_TEMP/mjsec-payload.sh"
+          {
+            printf 'COLLECTOR_B64=%q\n' "$(base64 -w0 ops/incident-20261117/collect-readonly.sh)"
+            printf 'TRANSFORM_B64=%q\n' "$(base64 -w0 ops/incident-20261117/maintenance_config.py)"
+            cat ops/incident-20261117/contain-lms.sh
+          } > "$payload"
+          set +e
+          timeout 720 ssh -F /dev/null -o BatchMode=yes -o ConnectTimeout=10 -o ConnectionAttempts=1 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/mjsec-known-hosts" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s < "$payload" > "$RUNNER_TEMP/mjsec-evidence/remote-output.txt" 2> "$RUNNER_TEMP/mjsec-evidence/ssh-stderr.txt"
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$RUNNER_TEMP/mjsec-evidence/exit-code.txt"
+          echo "Authorized containment command completed with exit code $rc; evidence is encrypted."
+          exit "$rc"
+      - name: Encrypt evidence for the local investigation owner
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mjsec-evidence"
+          tar -C "$RUNNER_TEMP/mjsec-evidence" -czf "$RUNNER_TEMP/mjsec-evidence.tar.gz" .
+          openssl cms -encrypt -binary -aes-256-gcm -recip ops/incident-20261117/recipient.crt.pem -keyopt rsa_padding_mode:oaep -keyopt rsa_oaep_md:sha256 -in "$RUNNER_TEMP/mjsec-evidence.tar.gz" -outform DER -out "$RUNNER_TEMP/mjsec-evidence.cms"
+          sha256sum "$RUNNER_TEMP/mjsec-evidence.cms" > "$RUNNER_TEMP/mjsec-evidence.cms.sha256"
+      - name: Upload encrypted evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mjsec-encrypted-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/mjsec-evidence.cms
+            ${{ runner.temp }}/mjsec-evidence.cms.sha256
+          if-no-files-found: error
+          retention-days: 7
