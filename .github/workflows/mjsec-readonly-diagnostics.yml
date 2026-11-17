@@ -1,0 +1,70 @@
+name: MJSEC bounded read-only diagnostics 20261117
+on:
+  push:
+    branches: [codex/mjsec-incident-diagnostics-20261117]
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      SSH_HOST: ${{ secrets.HOST }}
+      SSH_USER: ${{ secrets.USER }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+      - name: Bounded read-only host and Docker checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SSH_HOST" == 14.42.48.191 || "$SSH_HOST" == mjsec.kr ]]
+          [[ "$SSH_PORT" == 2222 && -n "$SSH_USER" ]]
+          mkdir -m 700 "$RUNNER_TEMP/diagnostic"
+          ssh-keyscan -T 8 -t ed25519 -p "$SSH_PORT" "$SSH_HOST" > "$RUNNER_TEMP/known-hosts" 2>/dev/null
+          [[ $(ssh-keygen -lf "$RUNNER_TEMP/known-hosts" | awk '{print $2}') == 'SHA256:7+/z32wOTUDLksud67Wvir5GHU6k1vOW7g+SwnF+e0w' ]]
+          set +e
+          timeout -k 5 65 ssh -v -F /dev/null -o BatchMode=yes -o ConnectTimeout=8 -o ConnectionAttempts=1 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/known-hosts" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash -s' > "$RUNNER_TEMP/diagnostic/stdout.txt" 2> "$RUNNER_TEMP/diagnostic/stderr.txt" <<'REMOTE'
+          set +e
+          printf 'DIAGNOSTIC_START\n'
+          date -u +%FT%TZ
+          id
+          uname -srmo
+          uptime
+          ps -eo user,pid,ppid,etimes,comm,wchan:28 --forest
+          timeout 4 ss -H -lntup
+          printf 'DOCKER_CONTEXT\n'
+          timeout 5 docker context show
+          printf 'DOCKER_INFO\n'
+          timeout -k 1 8 docker info --format 'server={{.ServerVersion}} name={{.Name}}'
+          printf 'DOCKER_INFO_RC=%s\n' "$?"
+          timeout -k 1 8 docker ps -a --format '{{.ID}} {{.Names}} {{.Image}} {{.Status}} {{.Ports}}'
+          printf 'DOCKER_PS_RC=%s\n' "$?"
+          timeout -k 1 4 sudo -n true
+          printf 'SUDO_RC=%s\n' "$?"
+          ls -ld /srv/mjsec /srv/mjsec/docker-compose.prod.yaml /srv/mjsec/nginx/default.conf.template
+          printf 'DIAGNOSTIC_END\n'
+          REMOTE
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$RUNNER_TEMP/diagnostic/exit.txt"
+          echo "Bounded read-only diagnostic finished with exit code $rc."
+          exit "$rc"
+      - name: Encrypt diagnostic
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/diagnostic"
+          tar -C "$RUNNER_TEMP/diagnostic" -czf "$RUNNER_TEMP/diagnostic.tar.gz" .
+          openssl cms -encrypt -binary -aes-256-gcm -recip ops/incident-20261117/recipient.crt.pem -keyopt rsa_padding_mode:oaep -keyopt rsa_oaep_md:sha256 -in "$RUNNER_TEMP/diagnostic.tar.gz" -outform DER -out "$RUNNER_TEMP/diagnostic.cms"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mjsec-encrypted-diagnostic-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnostic.cms
+          if-no-files-found: error
+          retention-days: 7
