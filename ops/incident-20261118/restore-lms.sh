@@ -70,10 +70,25 @@ d cp "$nginx:$active" "$backup/active.maintenance"
 [[ $(sha256sum "$backup/template.maintenance" | cut -d ' ' -f1) == "$expected_template" ]]
 [[ $(sha256sum "$backup/active.maintenance" | cut -d ' ' -f1) == "$expected_active" ]]
 # The original files are trusted only if the reviewed transform reproduces the known 503 bytes.
-python3 "$backup/maintenance_config.py" "$incident/template.before" "$backup/template.rechecked"
-python3 "$backup/maintenance_config.py" "$incident/active.before" "$backup/active.rechecked"
+for name in template active; do
+  "${host_priv[@]}" cp "$incident/$name.before" "$backup/$name.original"
+  "${host_priv[@]}" chown "$(id -u):$(id -g)" "$backup/$name.original"
+  chmod 600 "$backup/$name.original"
+done
+python3 "$backup/maintenance_config.py" "$backup/template.original" "$backup/template.rechecked"
+python3 "$backup/maintenance_config.py" "$backup/active.original" "$backup/active.rechecked"
 [[ $(sha256sum "$backup/template.rechecked" | cut -d ' ' -f1) == "$expected_template" ]]
 [[ $(sha256sum "$backup/active.rechecked" | cut -d ' ' -f1) == "$expected_active" ]]
+# Transforming removes the proxy URL itself, so independently pin those three original URLs.
+python3 - "$backup/template.original" "$backup/active.original" <<'PY'
+from collections import Counter
+from pathlib import Path
+import re,sys
+expected=Counter(['http://lms-back:8080/lms/api/v1/image/','http://lms-back:8080','http://lms-front:80/'])
+for name in sys.argv[1:]:
+    urls=re.findall(r'^\s*proxy_pass\s+(http://lms-(?:back|front)[^;\s]*);',Path(name).read_text(),re.M)
+    assert Counter(urls)==expected, 'unexpected original LMS proxy URL'
+PY
 "${host_priv[@]}" cp "$root/.env" "$backup/env.before"
 "${host_priv[@]}" chown "$(id -u):$(id -g)" "$backup/env.before"
 chmod 600 "$backup/env.before"
@@ -266,8 +281,8 @@ protected_snapshot > "$backup/protected.internal"
 cmp -s "$backup/protected.before" "$backup/protected.internal"
 
 phase=reopen_verified_lms
-install_template "$incident/template.before"
-install_active "$incident/active.before"
+install_template "$backup/template.original"
+install_active "$backup/active.original"
 d exec "$nginx" nginx -t
 d exec "$nginx" nginx -s reload
 ready=0
