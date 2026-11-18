@@ -97,13 +97,29 @@ jobs:
           if [ -z "$LATEST_BACK" ] || [ "$LATEST_BACK" = "null" ]; then LATEST_BACK="latest"; fi
           if [ -z "$LATEST_FRONT" ] || [ "$LATEST_FRONT" = "null" ]; then LATEST_FRONT="latest"; fi
 
+          # Validate API values before writing the runner's environment file.
+          [[ "$USERNAME" =~ ^[a-z0-9]+([._-][a-z0-9]+)*$ ]]
+          [[ "$LATEST_BACK" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]
+          [[ "$LATEST_FRONT" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]
+
           echo "LATEST_BACK=$LATEST_BACK"
           echo "LATEST_FRONT=$LATEST_FRONT"
 
           {
+            echo "DOCKERHUB_REPOSITORY_USER=$USERNAME"
             echo "LATEST_BACK=$LATEST_BACK"
             echo "LATEST_FRONT=$LATEST_FRONT"
           } >> "$GITHUB_ENV"
+
+      - name: Log in to Docker Hub for runtime verification
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Fail before changing remote files or stopping services, and pin the checked image.
+      - name: Verify LMS backend Java runtime and pin image digest
+        run: bash .github/scripts/verify-lms-java.sh "${DOCKERHUB_REPOSITORY_USER}/mjsec-lms-back:${LATEST_BACK}"
 
       # 1) 원격 디렉터리 준비 + .env 업로드 (LMS 변수 포함)
       - name: Prepare remote dir & .env
@@ -128,6 +144,7 @@ jobs:
           # Docker Hub (pull용 네임스페이스 + 태그)
           DOCKERHUB_USER=${{ env.DOCKERHUB_USER }}
           LMS_BACK_TAG=${LATEST_BACK:-latest}
+          LMS_BACK_IMAGE=${LMS_BACK_IMAGE:?verified backend image is required}
           LMS_FRONT_TAG=${LATEST_FRONT:-latest}
 
           # Wiki.js

@@ -66,7 +66,7 @@ services:
 
   # ── LMS 백엔드 (Spring) — 컨텍스트패스는 /lms/api
   lms-back:
-    image: ${DOCKERHUB_USER}/mjsec-lms-back:${LMS_BACK_TAG:-latest}
+    image: ${LMS_BACK_IMAGE:-${DOCKERHUB_USER}/mjsec-lms-back:${LMS_BACK_TAG:-latest}}
     restart: unless-stopped
     depends_on:
       lms-db:
