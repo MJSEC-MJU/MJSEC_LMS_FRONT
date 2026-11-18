@@ -106,6 +106,7 @@ services:
   nginx:
     container_name: nginx
     image: nginx:alpine
+    pull_policy: always  # 패치된 nginx(>= 1.31.9 / 1.30.7) 이미지를 배포 때마다 받도록
     depends_on:
       - app
       - wiki
